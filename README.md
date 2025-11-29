@@ -88,12 +88,9 @@ curl "http://your-server/api/v1/files/{file_id}?format=glb" -o output.glb
 
 ### Troubleshooting & Support
 - **[Troubleshooting Guide](backend/docs/TROUBLESHOOTING_GUIDE.md)** – Common errors and solutions
-- **[GitHub Issues](https://github.com/yourusername/cadlift/issues)** – Report bugs or request features
+- **[GitHub Issues](https://github.com/vartmor/cadlift/issues)** – Report bugs or request features
 
-### Technical Documentation
-- **[Production Plan](PLAN_PRODUCTION.md)** – Complete development roadmap (Phases 1-6)
-- **[Phase 5 QA Results](backend/docs/PHASE_5_QA_RESULTS.md)** – Test results and performance metrics
-- **[Phase 6 Readiness](PHASE_6_READY.md)** – Advanced features roadmap
+
 
 ---
 
@@ -339,37 +336,7 @@ CADLift includes production-grade security:
 - ✅ **File size limits:** DXF 50MB, Images 20MB
 - ✅ **Upload scanning:** DXF structure validation, image format validation
 
----
 
-## 📊 Project Status
-
-### Completed Phases (100%)
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| **Phase 1** | ✅ 100% | Foundation - Real STEP generation, DXF improvements, wall thickness |
-| **Phase 2** | ✅ 100% | Pipeline enhancements - CAD, Image, Prompt pipelines |
-| **Phase 3** | ✅ 100% | Production hardening - Error handling, logging, monitoring, security |
-| **Phase 4** | ✅ 100% | Export formats - OBJ, STL, PLY, glTF, GLB, OFF |
-| **Phase 5** | ✅ 100% | Quality assurance - 92 tests, performance validation, geometry verification |
-
-### Current Phase
-
-**Phase 6: Documentation & Advanced Features** (In Progress)
-
-- ✅ **Documentation Complete:**
-  - Quick Start Guide
-  - API Documentation
-  - Troubleshooting Guide
-  - Output Format Guide
-  - Input Requirements Guide
-
-- ⏸️ **Advanced Features (Future):**
-  - Door & window openings
-  - Multi-story buildings
-  - Materials & appearance
-  - Parametric components
-  - Frontend UI with 3D viewer
 
 ---
 
@@ -431,7 +398,7 @@ Built with:
 - **Quick Start:** [QUICK_START_GUIDE.md](backend/docs/QUICK_START_GUIDE.md)
 - **API Reference:** [API_DOCUMENTATION.md](backend/docs/API_DOCUMENTATION.md)
 - **Troubleshooting:** [TROUBLESHOOTING_GUIDE.md](backend/docs/TROUBLESHOOTING_GUIDE.md)
-- **Issues:** [GitHub Issues](https://github.com/yourusername/cadlift/issues)
+- **Issues:** [GitHub Issues](https://github.com/vartmor/cadlift/issues)
 
 ---
 
@@ -440,7 +407,5 @@ Built with:
 If you find CADLift useful, please star this repository to help others discover it!
 
 ---
-
-**CADLift** – Transform 2D floor plans into 3D CAD models in seconds. Production-ready, fully tested, and blazing fast.
 
 *Built with ❤️ for architects, designers, and developers*
