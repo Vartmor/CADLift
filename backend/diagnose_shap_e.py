@@ -43,7 +43,9 @@ print()
 
 # Check device
 print("2. Checking device...")
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Force CPU mode - GPU memory insufficient for text300M
+device = torch.device('cpu')
+print("   Forcing CPU mode (GPU has insufficient memory)")
 print(f"   Device: {device}")
 if device.type == 'cuda':
     mem = torch.cuda.get_device_properties(0).total_memory / 1e9

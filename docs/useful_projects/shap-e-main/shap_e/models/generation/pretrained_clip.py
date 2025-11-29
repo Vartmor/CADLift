@@ -21,7 +21,7 @@ class ImageCLIP(nn.Module):
         device: torch.device,
         dtype: Optional[torch.dtype] = torch.float32,
         ensure_used_params: bool = True,
-        clip_name: str = "ViT-L/14",
+        clip_name: str = "ViT-B/32",  # Changed from ViT-L/14 - smaller model to avoid MemoryError
         cache_dir: Optional[str] = None,
     ):
         super().__init__()
@@ -34,9 +34,13 @@ class ImageCLIP(nn.Module):
         # Lazy import because of torchvision.
         import clip
 
+        # Force jit=False and load to CPU first to avoid MemoryError with large JIT models
+        # Then move to device after loading
         self.clip_model, self.preprocess = clip.load(
-            clip_name, device=device, download_root=cache_dir or default_cache_dir()
+            clip_name, device='cpu', jit=False, download_root=cache_dir or default_cache_dir()
         )
+        if str(device) != 'cpu':
+            self.clip_model = self.clip_model.to(device)
         self.clip_name = clip_name
 
         if dtype is not None:

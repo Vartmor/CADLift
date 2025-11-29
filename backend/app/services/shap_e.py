@@ -58,18 +58,18 @@ class ShapEService:
                 "Install from: cd docs/useful_projects/shap-e-main && pip install -e ."
             )
         else:
-            self.enabled = True
-            # Detect device (GPU if available, else CPU)
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-            if self.device.type == 'cuda':
-                logger.info(f"Shap-E service initialized with GPU acceleration ({torch.cuda.get_device_name(0)})")
-            else:
-                logger.info("Shap-E service initialized with CPU (slower, ~2-5 min per object)")
-
-            logger.info(
-                "Shap-E service ready - using LOCAL models (FREE, no API costs!)"
+            # PERMANENTLY DISABLED - PyTorch 2.5.1 + Windows incompatibility
+            # See SHAP_E_INVESTIGATION.md for full diagnostic details
+            self.enabled = False
+            logger.warning(
+                "Shap-E service DISABLED - PyTorch/CLIP JIT loading incompatibility on Windows. "
+                "Root cause: torch.jit.load() segfault when loading CLIP ViT models. "
+                "Using GPT-4 Vision + OpenSCAD pipeline for CAD generation. "
+                "Phase 6 will add TripoSR as AI mesh generation alternative."
             )
+
+            # Keep device setting for reference
+            self.device = torch.device('cpu')
 
     def _load_models(self):
         """

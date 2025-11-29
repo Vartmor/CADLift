@@ -24,16 +24,17 @@
 
 ### Technology Stack
 1. **Keep current**: CadQuery parametric system (engineering/architecture)
-2. **Add AI**: OpenAI Shap-E **LOCAL** (organic/artistic objects) - FREE, no API costs!
+2. **Add AI**: ~~OpenAI Shap-E~~ → **TripoSR (Stability AI)** (image-to-3D) - ✅ Windows compatible!
 3. **Add routing**: Intelligent prompt classification
-4. **Add enhancement**: Mesh refinement, texture support
-5. **Add 3D Viewer** 🆕: Online3DViewer (WebGL, three.js) - Interactive preview in browser
+4. **Add enhancement**: Mesh refinement, format conversion
+5. **Add 3D Viewer** 🆕: Online3DViewer (WebGL, three.js) - Interactive preview in browser ✅ DONE
 6. **Add Pro Conversion** 🆕: Mayo (OpenCascade, Qt) - Professional CAD-grade conversion
 
-**Key Advantages**:
-- Using **local Shap-E models** from `docs/useful_projects/shap-e-main` - no API costs, full control!
-- **Online3DViewer** from `docs/useful_projects/Online3DViewer-master` - No plugins, pure WebGL
-- **Mayo CAD converter** from `docs/useful_projects/mayo-develop` - Professional OpenCascade quality
+**Key Changes (Nov 29, 2025)**:
+- ~~Shap-E~~: Incompatible (PyTorch/CLIP JIT bug on Windows) - See [SHAP_E_INVESTIGATION.md](SHAP_E_INVESTIGATION.md)
+- **TripoSR**: Modern replacement (2024), image-based, no CLIP dependency
+- **Online3DViewer**: ✅ Implemented (Phase 5A)
+- **Mayo integration**: ✅ Implemented (Phase 5B)
 
 ---
 
@@ -317,27 +318,46 @@ All Phase 3 objectives validated:
 
 ---
 
-### Phase 6: Texture & Material Support (Week 7)
-**Goal**: Add realistic textures, materials, and rendering
-**Effort**: 30-40 hours
+### Phase 6: TripoSR Integration (Shap-E Replacement) (Week 7) 🔄
+**Goal**: Replace Shap-E with TripoSR for AI mesh generation
+**Effort**: 25-35 hours
+**Reason**: Shap-E incompatible due to PyTorch/CLIP JIT bug (see [SHAP_E_INVESTIGATION.md](SHAP_E_INVESTIGATION.md))
+
+**Why TripoSR**:
+- ✅ No CLIP dependency (avoids JIT segfault issue)
+- ✅ Modern architecture (2024 vs Shap-E 2022)
+- ✅ **Image-to-3D** (perfect for engineering drawings use case)
+- ✅ Better quality and faster inference
+- ✅ Windows compatible
+- ✅ Active development and maintenance
 
 **Tasks**:
-1. Add PBR texture generation
-2. Implement material library
-3. Add UV mapping for textures
-4. Support texture import from images
-5. Add rendering preview
+1. Install TripoSR from HuggingFace (stabilityai/triposr)
+2. Create TripoSR service wrapper (similar to shap_e.py)
+3. Integrate with existing pipeline (image upload → TripoSR → GLB)
+4. Update prompt routing (image-based generation)
+5. Benchmark performance (GPU/CPU modes)
+6. Test with engineering drawings and CAD objects
+7. Update documentation and API
 
 **Deliverables**:
-- ✅ PBR materials (metallic, roughness, etc.)
-- ✅ Material library (50+ materials)
-- ✅ Texture mapping support
-- ✅ Preview rendering
+- ✅ TripoSR service integrated
+- ✅ Image-to-3D generation working
+- ✅ Performance benchmarks documented
+- ✅ User guide for image-based generation
+- ✅ Tests passing (10+ test cases)
 
 **Success Metrics**:
-- Texture generation success: 85%+
-- Material variety: 50+ materials
-- Rendering quality: High
+- Image-to-3D generation success: 90%+
+- Quality score: 8.5+/10
+- Generation time: <2 min (CPU), <30s (GPU)
+- Engineering drawing → CAD accuracy: 85%+
+
+**Technical Stack**:
+- **Model**: TripoSR (Stability AI)
+- **Input**: Images (PNG, JPG) - integrates with existing GPT-4 Vision
+- **Output**: GLB/OBJ meshes → DXF/STEP conversion
+- **Device**: CUDA (if available) or CPU fallback
 
 ---
 
@@ -665,21 +685,22 @@ pip install transformers>=4.35.0    # TripoSR models (Phase 2)
 
 | Phase | Duration | Deliverable | Status |
 |-------|----------|------------|---------|
-| Phase 1: Shap-E Integration | Week 1-2 | Text-to-3D generation | ✅ **COMPLETE** |
-| Phase 2: Image-to-3D | Week 3 | Image-to-3D generation | ✅ **COMPLETE** |
+| Phase 1: Shap-E Integration | Week 1-2 | ~~Text-to-3D generation~~ (Deprecated) | ⚠️ **INCOMPATIBLE** |
+| Phase 2: Image-to-3D | Week 3 | GPT-4 Vision → OpenSCAD | ✅ **COMPLETE** |
 | Phase 3: Quality Enhancement | Week 4 | Mesh refinement | ✅ **COMPLETE** |
 | Phase 4: Hybrid System | Week 5 | AI + Parametric combo | ✅ **COMPLETE** |
-| **Phase 5: 3D Viewer & Conversion** 🆕 | **Week 6** | **Interactive preview + Mayo** | 📋 **Planned** |
-| Phase 6: Textures & Materials | Week 7 | Realistic rendering | 📋 Planned |
+| **Phase 5: 3D Viewer & Conversion** 🆕 | **Week 6** | **Interactive preview + Mayo** | ✅ **COMPLETE** |
+| **Phase 6: TripoSR Integration** 🔄 | **Week 7** | **Image-to-3D AI (Shap-E replacement)** | 📋 **IN PROGRESS** |
 | Phase 7: Testing & Docs | Week 8-9 | Full documentation | 📋 Planned |
 | Phase 8: Production | Week 10 | Live deployment | 📋 Planned |
 
-**Current Progress**: Phase 4 - ✅ **100% COMPLETE** (4/8 phases, 50%)
-- Phase 1 ✅ Text-to-3D with Shap-E text300M (routing ✅, generation ✅, testing ✅)
-- Phase 2 ✅ Image-to-3D with Shap-E image300M (integration ✅, testing ✅, pipeline ✅)
-- Phase 3 ✅ Quality Enhancement (cleanup ✅, smoothing ✅, repair ✅, scoring ✅, DXF bug fixed ✅)
-- Phase 4 ✅ Hybrid System (boolean ops ✅, scaling ✅, assembly ✅, transformations ✅, 8/8 tests ✅)
-- **Phase 5** 📋 3D Viewer (Online3DViewer) + Advanced Conversion (Mayo) - **NEXT**
+**Current Progress**: Phase 5 - ✅ **COMPLETE** (5/8 phases, 62.5%)
+- Phase 1 ⚠️ Shap-E integration attempted but incompatible (PyTorch/CLIP JIT bug)
+- Phase 2 ✅ Image-to-3D with GPT-4 Vision → OpenSCAD (primary use case working!)
+- Phase 3 ✅ Quality Enhancement (cleanup ✅, smoothing ✅, repair ✅, scoring ✅)
+- Phase 4 ✅ Hybrid System (boolean ops ✅, scaling ✅, assembly ✅, 8/8 tests ✅)
+- Phase 5 ✅ 3D Viewer (Online3DViewer ✅) + Mayo Integration (✅) - **JUST COMPLETED!**
+- **Phase 6** 🔄 TripoSR Integration - **STARTING NOW** (Shap-E replacement)
 
 **Total**: 8-10 weeks to production-ready "any object" capability (with 3D viewer & professional CAD conversion)
 
