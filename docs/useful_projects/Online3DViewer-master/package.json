@@ -1,0 +1,129 @@
+{
+	"name": "online-3d-viewer",
+	"version": "0.16.0",
+	"description": "Online 3D Viewer",
+	"license": "MIT",
+	"type": "module",
+	"main": "./build/engine/o3dv.module.js",
+	"repository": "github:kovacsv/Online3DViewer",
+	"keywords": [
+		"3d",
+		"viewer",
+		"cad",
+		"3dm",
+		"3ds",
+		"3mf",
+		"amf",
+		"bim",
+		"brep",
+		"dae",
+		"fbx",
+		"fcstd",
+		"gltf",
+		"ifc",
+		"iges",
+		"step",
+		"stl",
+		"obj",
+		"off",
+		"ply",
+		"wrl"
+	],
+	"files": [
+		"build/engine/o3dv.min.js",
+		"build/engine/o3dv.module.js",
+		"build/engine/o3dv.module.d.ts",
+		"source/engine/*",
+		"website/assets/envmaps/*"
+	],
+	"scripts": {
+		"start": "npm run build_website_dev && http-server",
+		"test": "mocha test",
+		"lint": "eslint source",
+		"lint_fix": "eslint source --fix",
+		"generate_icon_font": "run-python3 tools/generate_icon_font.py",
+		"create_dist": "npm run create_package && npm run lint && npm run test",
+		"create_dist_test": "npm run create_package_test && npm run lint && npm run test",
+		"create_package": "npm run generate_docs && npm run build_engine && npm run build_engine_module && npm run build_website && run-python3 tools/create_package.py",
+		"create_package_test": "npm run generate_docs && npm run build_engine && npm run build_engine_module && npm run build_website && run-python3 tools/create_package.py test",
+		"generate_docs": "run-python3 tools/generate_docs.py",
+		"build_dev": "npm run build_engine_dev && npm run build_website_dev",
+		"build_engine_dev": "npm run update_engine_exports && esbuild source/engine/main.js --bundle --minify --global-name=OV --sourcemap --outfile=build/engine_dev/o3dv.min.js",
+		"build_engine": "npm run update_engine_exports && esbuild source/engine/main.js --bundle --minify --global-name=OV --outfile=build/engine/o3dv.min.js",
+		"build_engine_module": "npm run update_engine_exports && rollup --config tools/rollup.js && tsc --project tools/tsconfig.json",
+		"build_website_dev": "esbuild source/website/index.js --bundle --minify --global-name=OV --sourcemap --loader:.ttf=file --loader:.woff=file --loader:.svg=file --outfile=build/website_dev/o3dv.website.min.js",
+		"build_website": "esbuild source/website/index.js --bundle --minify --global-name=OV --loader:.ttf=file --loader:.woff=file --loader:.svg=file --outfile=build/website/o3dv.website.min.js",
+		"update_engine_exports": "run-python3 tools/update_engine_exports.py"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.0",
+		"esbuild": "^0.25.4",
+		"eslint": "^8.57.0",
+		"eslint-plugin-unused-imports": "^4.1.0",
+		"fantasticon": "^1.2.2",
+		"http-server": "^14.0.0",
+		"jsdoc": "^4.0.4",
+		"mocha": "^11.5.0",
+		"oslllo-svg-fixer": "^3.0.0",
+		"rollup": "^4.41.0",
+		"run-python3": "^0.0.5",
+		"svgo": "^3.3.2",
+		"typescript": "^5.0.4"
+	},
+	"dependencies": {
+		"@simonwep/pickr": "1.9.0",
+		"fflate": "0.8.2",
+		"three": "0.176.0"
+	},
+	"eslintConfig": {
+		"env": {
+			"browser": true,
+			"es2021": true
+		},
+		"extends": "eslint:recommended",
+		"globals": {
+			"OV": "writable",
+			"$": "readonly",
+			"fflate": "readonly",
+			"Pickr": "readonly",
+			"THREE": "readonly",
+			"DracoDecoderModule": "readonly",
+			"rhino3dm": "readonly",
+			"WebIFC": "readonly",
+			"occtimportjs": "readonly"
+		},
+		"parserOptions": {
+			"ecmaVersion": 12,
+			"sourceType": "module"
+		},
+		"plugins": [
+			"unused-imports"
+		],
+		"rules": {
+			"semi": "error",
+			"no-var": "error",
+			"guard-for-in": "error",
+			"no-new": "error",
+			"no-new-object": "error",
+			"no-new-func": "error",
+			"no-array-constructor": "error",
+			"no-prototype-builtins": "error",
+			"no-eval": "error",
+			"no-useless-escape": "error",
+			"no-multiple-empty-lines": "error",
+			"comma-spacing": "error",
+			"prefer-arrow-callback": "error",
+			"quotes": [
+				"error",
+				"single"
+			],
+			"block-scoped-var": "error",
+			"no-undef": "error",
+			"no-extend-native": "error",
+			"eqeqeq": "error",
+			"no-unused-vars": "off",
+			"no-use-before-define": "off",
+			"unused-imports/no-unused-imports": "error"
+		}
+	}
+}

@@ -1,0 +1,10 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('AI-generated 3D mesh'),'2;1');
+FILE_NAME('mesh.step','',(''),(''),''STEP export from CADLift','','');
+FILE_SCHEMA(('AP203'));
+ENDSEC;
+DATA;
+/* Mesh data embedded as comment - proper STEP B-rep implementation needed */
+ENDSEC;
+END-ISO-10303-21;

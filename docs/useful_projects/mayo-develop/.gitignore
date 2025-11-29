@@ -1,0 +1,6 @@
+build-*
+*.user
+*.user.*
+custom.pri
+env.pri
+cmake/CustomSteps.cmake
