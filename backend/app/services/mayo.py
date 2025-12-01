@@ -62,6 +62,7 @@ class MayoService:
             mayo_exe: Path to mayoconv executable (default: searches PATH)
         """
         self.mayo_exe = mayo_exe
+        self._exe_path: str | None = None
         self._available: bool | None = None
         self._version: str | None = None
 
@@ -75,8 +76,21 @@ class MayoService:
         if self._available is not None:
             return self._available
 
-        # Check if mayoconv is in PATH
-        mayo_path = shutil.which(self.mayo_exe)
+        # Check for CLI: prefer mayoconv, then mayo-conv, then default install path
+        candidates = [
+            self.mayo_exe,
+            "mayo-conv",
+            str(Path("C:/Program Files/Fougue/Mayo/mayo-conv.exe")),
+        ]
+        mayo_path = None
+        for cand in candidates:
+            found = shutil.which(cand)
+            if not found and Path(cand).exists():
+                found = str(Path(cand))
+            if found:
+                mayo_path = found
+                break
+
         if not mayo_path:
             logger.info("Mayo not found in PATH. Install from: https://github.com/fougue/mayo/releases")
             self._available = False
@@ -92,6 +106,7 @@ class MayoService:
             )
             if result.returncode == 0:
                 self._version = result.stdout.strip()
+                self._exe_path = mayo_path
                 self._available = True
                 logger.info(f"Mayo available: {self._version}")
                 return True
@@ -140,6 +155,8 @@ class MayoService:
                 "Mayo is not available. Install from: https://github.com/fougue/mayo/releases"
             )
 
+        mayo_exec = self._exe_path or self.mayo_exe
+
         if to_format not in MAYO_EXPORT_FORMATS:
             raise MayoConversionError(
                 f"Mayo does not support export to {to_format}. "
@@ -159,7 +176,7 @@ class MayoService:
 
             # Build Mayo command
             cmd = [
-                self.mayo_exe,
+                mayo_exec,
                 str(input_file),
                 "-e", str(output_file),
                 "--no-progress",  # Disable progress bar for cleaner logs

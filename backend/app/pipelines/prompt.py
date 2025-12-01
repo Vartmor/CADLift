@@ -16,11 +16,39 @@ from app.pipelines.geometry import build_artifacts
 from app.services.llm import llm_service
 from app.services.routing import get_routing_service
 from app.pipelines.ai import run_ai_pipeline
+from app.services.shap_e import get_shap_e_service
 from app.core.errors import CADLiftError, ErrorCode
+from app.services.mesh_converter import get_mesh_converter, MeshConversionError
+from app.services.mesh_processor import process_mesh
+from app.services.openai_image import get_openai_image_service, OpenAIImageError
+from app.services.triposr import get_triposr_service, TripoSRError
 import math
 import ezdxf
 import cadquery as cq
 from io import BytesIO
+
+
+def _build_gemini_prompt(user_prompt: str) -> str:
+    """
+    Enrich user prompt for image generation so TripoSG gets a clean reference.
+
+    Emphasizes:
+    - Single centered object
+    - Neutral background
+    - Orthographic view
+    - High detail, no text/watermark
+    - 1:1 aspect framing
+    """
+    return (
+        "Generate a single, centered object with a clean reference image. "
+        "Subject: " + user_prompt.strip() + ". "
+        "Style: photorealistic product shot, high detail, sharp focus. "
+        "Camera: orthographic front view, straight-on. "
+        "Background: neutral gray, no clutter. "
+        "Lighting: even studio lighting, soft shadows. "
+        "Frame: square 1:1, object fully in frame. "
+        "Restrictions: no text, no watermark, no extra props."
+    )
 
 
 logger = logging.getLogger("cadlift.pipeline.prompt")
@@ -41,6 +69,117 @@ async def run(job: Job, session: AsyncSession) -> None:
     )
 
     use_ai = params.get("use_ai", True)
+    use_gemini_triposg = params.get("use_gemini_triposg", True)
+
+    # New AI path: OpenAI image -> TripoSR mesh (organic/artistic prompts)
+    if use_ai and use_gemini_triposg and routing.pipeline == "ai":
+        img_service = get_openai_image_service()
+        triposr = get_triposr_service()
+
+        if img_service.is_available() and triposr.enabled:
+            try:
+                logger.info("OpenAI→TripoSR path selected", extra={"job_id": job.id})
+                enriched_prompt = _build_gemini_prompt(prompt_text)
+                image_bytes = img_service.generate_image(enriched_prompt)
+
+                converter = get_mesh_converter()
+                obj_bytes = triposr.generate_from_image(image_bytes)
+                glb_bytes = converter.convert(obj_bytes, "obj", "glb")
+                target_faces = int(max(20000, min(120000, 20000 + float(params.get("detail", 70)) * 800)))
+                quality = None
+                try:
+                    processed_glb, quality = await process_mesh(glb_bytes, file_type="glb", target_faces=target_faces, min_quality=7.0)
+                except Exception as exc:  # pragma: no cover
+                    logger.warning(f"Mesh processing skipped: {exc}")
+                    processed_glb = glb_bytes
+
+                outputs = {
+                    "glb": processed_glb,
+                    "obj": converter.convert(processed_glb, "glb", "obj"),
+                }
+                try:
+                    outputs["dxf"] = converter.convert(processed_glb, "glb", "dxf")
+                except MeshConversionError:
+                    outputs["dxf"] = b""
+                if converter.mayo_available:
+                    try:
+                        outputs["step"] = converter.convert(processed_glb, "glb", "step")
+                    except MeshConversionError:
+                        outputs["step"] = b""
+                else:
+                    outputs["step"] = b""
+
+                saved_files: dict[str, FileModel] = {}
+                for fmt, data in outputs.items():
+                    if not data:
+                        continue
+                    role = "output" if fmt in {"glb", "dxf", "obj"} else "output_step"
+                    fname = f"prompt_model.{fmt}"
+                    storage_key, size = storage_service.save_bytes(
+                        data,
+                        role=role,
+                        job_id=job.id,
+                        filename=fname,
+                    )
+                    file_rec = FileModel(
+                        user_id=job.user_id,
+                        job_id=job.id,
+                        role=role,
+                        storage_key=storage_key,
+                        original_name=fname,
+                        mime_type=f"application/{fmt}",
+                        size_bytes=size,
+                    )
+                    session.add(file_rec)
+                    await session.flush()
+                    saved_files[fmt] = file_rec
+
+                primary = saved_files.get("glb") or saved_files.get("dxf") or saved_files.get("step") or saved_files.get("obj")
+                if not primary:
+                    raise CADLiftError(ErrorCode.SYS_UNEXPECTED_ERROR, details="AI outputs could not be saved")
+
+                job.output_file_id = primary.id
+                job.status = "completed"
+                job.error_code = None
+                job.error_message = None
+
+                merged_params = dict(params)
+                merged_params["ai_metadata"] = {
+                    "pipeline": "openai_triposr",
+                    "provider": "openai+triposr",
+                    "quality_metrics": {
+                        "processing_quality_score": getattr(quality, "overall_score", None),
+                        "faces": getattr(quality, "face_count", None),
+                        "vertices": getattr(quality, "vertex_count", None),
+                        "watertight": getattr(quality, "is_watertight", None),
+                    },
+                }
+                if "glb" in saved_files:
+                    merged_params["glb_file_id"] = saved_files["glb"].id
+                if "step" in saved_files:
+                    merged_params["step_file_id"] = saved_files["step"].id
+                if "dxf" in saved_files:
+                    merged_params["dxf_file_id"] = saved_files["dxf"].id
+                if "obj" in saved_files:
+                    merged_params["obj_file_id"] = saved_files["obj"].id
+
+                job.params = merged_params
+                return
+
+            except (TripoSRError, MeshConversionError, CADLiftError) as exc:
+                logger.warning("OpenAI→TripoSR path failed, falling back to parametric", extra={"error": str(exc)})
+                use_ai = False  # force parametric fallback
+            except OpenAIImageError as exc:
+                # If OpenAI hard-fails (quota/HTTP), fall back to parametric.
+                logger.warning("OpenAI image generation failed, falling back to parametric", extra={"error": str(exc)})
+                use_ai = False
+
+        else:
+            logger.warning("OpenAI→TripoSR path unavailable (service disabled); using fallback")
+            use_ai = False
+    if use_ai and not get_shap_e_service().enabled:
+        logger.warning("Shap-E not available; falling back to parametric prompt pipeline")
+        use_ai = False
 
     # Prefer AI path for prompt jobs; if it fails, surface the error instead of silently falling back
     if use_ai:
@@ -97,6 +236,8 @@ async def run(job: Job, session: AsyncSession) -> None:
             merged_params["glb_file_id"] = saved_files["glb"].id
         if "step" in saved_files:
             merged_params["step_file_id"] = saved_files["step"].id
+        if "dxf" in saved_files:
+            merged_params["dxf_file_id"] = saved_files["dxf"].id
         if "obj" in saved_files:
             merged_params["obj_file_id"] = saved_files["obj"].id
 

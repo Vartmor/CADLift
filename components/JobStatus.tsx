@@ -150,11 +150,11 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                 {/* Download Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href={job?.download_url}
+                    href={job?.dxf_download_url}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 rounded-xl font-bold shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
-                    aria-disabled={!job?.download_url}
+                    aria-disabled={!job?.dxf_download_url}
                   >
                     <Download size={20} />
                     <span>{t('common.download_btn')} (DXF)</span>
@@ -168,6 +168,16 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                   >
                     <Layers size={18} />
                     <span>Download STEP</span>
+                  </a>
+                  <a
+                    href={job?.glb_download_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50"
+                    aria-disabled={!job?.glb_download_url}
+                  >
+                    <Download size={18} />
+                    <span>Download GLB</span>
                   </a>
                 </div>
               </>

@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     vision_api_key: str | None = None
     vision_timeout_seconds: float = 30.0
     max_upload_mb: int = 25
+    # Gemini image generation (Nano Banana / Pro)
+    gemini_api_key: str | None = None
+    gemini_image_model: str = "gemini-3-pro-image-preview"
+    gemini_image_aspect_ratio: str = "1:1"
+    gemini_image_resolution: str = "1K"  # 1K, 2K, 4K (per model support)
+    gemini_image_fallback_model: str | None = "gemini-2.5-flash-image"  # optional fallback if primary hits quota
+    enable_gemini_triposg: bool = True
 
 
 @lru_cache()

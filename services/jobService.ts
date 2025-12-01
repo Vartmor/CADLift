@@ -7,6 +7,7 @@ export interface JobRecord {
   status: JobStatus;
   progress: number;
   download_url?: string;
+  dxf_download_url?: string;
   step_download_url?: string;
   glb_download_url?: string;
   error_code?: string;
@@ -189,6 +190,10 @@ const adaptApiJob = (job: ApiJobEntity): JobRecord => {
   const step_download_url = step_id && API_BASE_URL
     ? `${API_BASE_URL}/api/v1/files/${step_id}`
     : undefined;
+  const dxf_id = job.params?.dxf_file_id as string | undefined;
+  const dxf_download_url = dxf_id && API_BASE_URL
+    ? `${API_BASE_URL}/api/v1/files/${dxf_id}`
+    : undefined;
   const glb_id = job.params?.glb_file_id as string | undefined;
   const glb_download_url = glb_id && API_BASE_URL
     ? `${API_BASE_URL}/api/v1/files/${glb_id}`
@@ -207,7 +212,8 @@ const adaptApiJob = (job: ApiJobEntity): JobRecord => {
     job_id: job.id,
     status,
     progress,
-    download_url,
+    download_url: dxf_download_url || download_url || glb_download_url,
+    dxf_download_url,
     step_download_url,
     glb_download_url,
     error_code: job.error_code,

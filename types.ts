@@ -27,6 +27,9 @@ export interface Job {
   job_id: string;
   status: JobStatus;
   download_url?: string;
+  dxf_download_url?: string;
+  glb_download_url?: string;
+  step_download_url?: string;
   error_code?: string;
   progress: number; // 0-100 for UI visualization
 }

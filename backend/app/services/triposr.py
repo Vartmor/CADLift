@@ -24,18 +24,17 @@ logger = logging.getLogger("cadlift.services.triposr")
 
 # Check if TripoSR is available
 TRIPOSR_AVAILABLE = False
+_triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
 try:
     import torch
-    # Add TripoSR to path
-    triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
-    if triposr_path.exists():
-        sys.path.insert(0, str(triposr_path))
+    if _triposr_path.exists():
+        sys.path.insert(0, str(_triposr_path))
         from tsr.system import TSR
         from tsr.utils import remove_background, resize_foreground
         TRIPOSR_AVAILABLE = True
-        logger.info(f"TripoSR module found at {triposr_path}")
+        logger.info(f"TripoSR module found at {_triposr_path}")
     else:
-        logger.warning(f"TripoSR not found at {triposr_path}")
+        logger.warning(f"TripoSR not found at {_triposr_path}")
 except ImportError as e:
     logger.warning(f"TripoSR dependencies not available: {e}")
 
@@ -52,6 +51,8 @@ class TripoSRService:
         self.enabled = False
         self.model = None
         self.device = None
+        self._loaded = False
+        self.mc_resolution = 128  # lower resolution to fit 4GB GPUs
 
         if not TRIPOSR_AVAILABLE:
             logger.warning("TripoSR service DISABLED - dependencies not available")
@@ -72,6 +73,82 @@ class TripoSRService:
     def is_available(self) -> bool:
         """Check if TripoSR service is available."""
         return self.enabled
+
+    def _ensure_loaded(self):
+        if not self.enabled:
+            raise TripoSRError("TripoSR service not enabled; install dependencies and clone docs/useful_projects/TripoSR")
+        if self._loaded:
+            return
+        try:
+            # Prefer local repo weights; if unavailable, try HF download
+            self.model = TSR.from_pretrained(
+                "stabilityai/TripoSR",
+                config_name="config.yaml",
+                weight_name="model.ckpt",
+            )
+            # reduce memory for small GPUs
+            if hasattr(self.model, "renderer"):
+                try:
+                    self.model.renderer.set_chunk_size(1024)
+                except Exception:
+                    pass
+            self.model.to(self.device)
+            self.model.eval()
+            self._loaded = True
+            logger.info("TripoSR model loaded")
+        except Exception as exc:
+            logger.error(f"Failed to load TripoSR model: {exc}")
+            raise TripoSRError(f"Failed to load TripoSR model: {exc}")
+
+    def generate_from_image(self, image_bytes: bytes, bg_removal: bool = True, foreground_ratio: float = 0.85) -> bytes:
+        """
+        Generate 3D mesh (OBJ) from a single image.
+
+        Args:
+            image_bytes: Input image bytes (PNG/JPG)
+            bg_removal: Whether to remove background before reconstruction
+            foreground_ratio: Resize ratio for foreground cropping
+
+        Returns:
+            OBJ file bytes
+
+        Raises:
+            TripoSRError: if generation fails or service not available
+        """
+        if not self.enabled:
+            raise TripoSRError("TripoSR service not enabled; install dependencies.")
+
+        self._ensure_loaded()
+
+        try:
+            image = Image.open(BytesIO(image_bytes)).convert("RGB")
+            if bg_removal:
+                # Match upstream TripoSR preprocessing: remove BG, crop to foreground,
+                # composite over gray background, keep 3 channels.
+                image = remove_background(image)
+                image = image.convert("RGBA")
+                image = resize_foreground(image, ratio=foreground_ratio)
+                arr = np.array(image).astype(np.float32) / 255.0
+                arr = arr[..., :3] * arr[..., 3:4] + (1 - arr[..., 3:4]) * 0.5
+                image = Image.fromarray((arr * 255.0).astype(np.uint8))
+            else:
+                arr = np.array(image).astype(np.float32) / 255.0
+                image = Image.fromarray((arr * 255.0).astype(np.uint8))
+
+            with torch.inference_mode():
+                scene_codes = self.model([image], device=self.device)
+                meshes = self.model.extract_mesh(
+                    scene_codes,
+                    has_vertex_color=False,
+                    resolution=self.mc_resolution,
+                )
+                mesh = meshes[0]
+            buf = BytesIO()
+            mesh.export(buf, file_type="obj")
+            return buf.getvalue()
+        except Exception as exc:
+            logger.exception("TripoSR generation failed")
+            raise TripoSRError(f"TripoSR generation failed: {exc}")
 
 
 # Singleton

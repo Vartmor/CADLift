@@ -58,37 +58,43 @@ async def run_ai_pipeline(
                         "pipeline": "ai",
                         "source_type": source_type,
                         "status": "service_not_available",
-                        "message": "Install Shap-E for image-to-3D generation",
+                        "message": "Install TripoSR dependencies and clone docs/useful_projects/TripoSR",
                     },
-                    "error": "Shap-E image300M not installed",
+                    "error": "TripoSR not installed",
                     "fallback_used": False,
                 }
 
-            # Generate PLY from image using Shap-E image300M
-            ply_bytes = await triposr.generate_from_image_async(
-                prompt,
-                guidance_scale=3.0,
-                num_steps=64
-            )
+            # Expect image bytes in params["image_bytes"]; otherwise fall back to prompt route
+            image_bytes = params.get("image_bytes")
+            if not image_bytes:
+                logger.warning("No image bytes provided for TripoSR; falling back to metadata only")
+                return {
+                    "metadata": {
+                        "pipeline": "ai",
+                        "source_type": source_type,
+                        "status": "no_image",
+                        "message": "Provide image_bytes in params for TripoSR image-to-3D",
+                    },
+                    "error": "image_bytes missing",
+                    "fallback_used": False,
+                }
 
+            obj_bytes = triposr.generate_from_image(image_bytes)
             converter = get_mesh_converter()
 
-            # Convert PLY to GLB first (authoritative format)
-            glb_bytes = converter.convert(ply_bytes, "ply", "glb")
-
+            formats = {
+                "obj": obj_bytes,
+                "glb": converter.convert(obj_bytes, "obj", "glb"),
+            }
             # Optional mesh processing (GLB path)
-            processed_glb = glb_bytes
+            processed_glb = formats["glb"]
             quality = None
             try:
                 processed_glb, quality = await process_mesh(processed_glb, file_type="glb")
             except Exception as exc:  # pragma: no cover
                 logger.warning(f"Mesh processing skipped: {exc}")
+            formats["glb"] = processed_glb
 
-            # Convert to all formats
-            formats = {
-                "glb": processed_glb,
-                "obj": converter.convert(processed_glb, "glb", "obj"),
-            }
             try:
                 formats["dxf"] = converter.convert(processed_glb, "glb", "dxf")
             except MeshConversionError:
@@ -102,13 +108,13 @@ async def run_ai_pipeline(
                 "metadata": {
                     "pipeline": "ai",
                     "source_type": source_type,
-                    "provider": "shap_e_image300M",
+                    "provider": "triposr_local",
                     "status": "completed",
                     "message": "Image-to-3D generation complete",
                     "quality_metrics": {
                         "model_source": "ai",
-                        "estimated_generation_time": "30-60s (GPU) or 2-5 min (CPU)",
-                        "estimated_cost": "$0.00 (local Shap-E)",
+                        "estimated_generation_time": "<30s (GPU) or <2 min (CPU) when deps installed",
+                        "estimated_cost": "$0.00 (local TripoSR)",
                         "processing_quality_score": quality.overall_score if quality else None,
                         "faces": quality.face_count if quality else None,
                         "vertices": quality.vertex_count if quality else None,

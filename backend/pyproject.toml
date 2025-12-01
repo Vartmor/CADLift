@@ -28,6 +28,7 @@ dependencies = [
     "typing-extensions>=4.8",
     "cadquery>=2.6",
     "structlog>=24.1",
+    "openai>=1.52.0",
 ]
 
 [project.optional-dependencies]

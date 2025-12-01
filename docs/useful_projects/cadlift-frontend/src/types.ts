@@ -58,6 +58,9 @@ export interface UploadFormData {
   extrudeHeight?: number;
   // Prompt specific
   prompt?: string;
+  // AI toggles
+  use_gemini_triposg?: boolean;
+  use_triposg?: boolean;
   // Image/Prompt Target
   targetFormat?: '2d' | '3d';
 }

@@ -40,6 +40,8 @@ const UploadForm: React.FC<UploadFormProps> = ({
   // Image/Prompt Specific
   const [targetFormat, setTargetFormat] = useState<'2d' | '3d'>('3d');
   const [prompt, setPrompt] = useState<string>('');
+  const [useTripoSG, setUseTripoSG] = useState<boolean>(false);
+  const [useGeminiTripoSG, setUseGeminiTripoSG] = useState<boolean>(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -144,6 +146,8 @@ const UploadForm: React.FC<UploadFormProps> = ({
       unit: unit,
       extrudeHeight: height,
       prompt: prompt,
+      use_gemini_triposg: activeTab === 'prompt' ? useGeminiTripoSG : undefined,
+      use_triposg: activeTab === 'image' ? useTripoSG : undefined,
       targetFormat: targetFormat
     };
 
@@ -394,6 +398,36 @@ const UploadForm: React.FC<UploadFormProps> = ({
                         {targetFormat === '3d' && <div className="w-3 h-3 bg-primary-500 rounded-full" />}
                       </label>
                     </div>
+
+                    {/* AI toggles */}
+                    {activeTab === 'prompt' && (
+                      <label className="mt-4 flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 transition-colors cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4"
+                          checked={useGeminiTripoSG}
+                          onChange={(e) => setUseGeminiTripoSG(e.target.checked)}
+                        />
+                        <div>
+                          <div className="text-sm font-bold text-slate-800 dark:text-slate-100">Use AI mesh (Gemini → TripoSG)</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">Best for organic/artistic prompts. Disable to force parametric CAD.</div>
+                        </div>
+                      </label>
+                    )}
+                    {activeTab === 'image' && (
+                      <label className="mt-4 flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 transition-colors cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4"
+                          checked={useTripoSG}
+                          onChange={(e) => setUseTripoSG(e.target.checked)}
+                        />
+                        <div>
+                          <div className="text-sm font-bold text-slate-800 dark:text-slate-100">Use AI mesh (TripoSG)</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">Try AI reconstruction from the image; fallback uses contour/OpenSCAD.</div>
+                        </div>
+                      </label>
+                    )}
                   </div>
                 )}
              </div>
