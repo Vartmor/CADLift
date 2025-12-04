@@ -34,9 +34,11 @@ const Dashboard: React.FC = () => {
   const [presetMode, setPresetMode] = useState<ConversionMode | null>(null);
   const [presetModeSignal, setPresetModeSignal] = useState(0);
   const uploadSectionRef = useRef<HTMLDivElement>(null);
+  const jobStatusRef = useRef<HTMLDivElement>(null);
   const { jobs: jobHistory } = useJobHistory();
   const [showImageModal, setShowImageModal] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState<number | null>(null);
   const [quickStartOpen, setQuickStartOpen] = useState(false);
   const [showTips, setShowTips] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -183,25 +185,29 @@ const Dashboard: React.FC = () => {
       id: 'docs',
       title: t('dashboard.quickLinks.documentation.title'),
       description: t('dashboard.quickLinks.documentation.description'),
-      icon: <BookOpen className="w-5 h-5 text-primary-500" />
+      icon: <BookOpen className="w-5 h-5 text-primary-500" />,
+      href: 'http://localhost:8000/docs',
     },
     {
       id: 'tutorials',
       title: t('dashboard.quickLinks.tutorials.title'),
       description: t('dashboard.quickLinks.tutorials.description'),
-      icon: <PlayCircle className="w-5 h-5 text-purple-500" />
+      icon: <PlayCircle className="w-5 h-5 text-purple-500" />,
+      href: '/resources#videos',
     },
     {
       id: 'faq',
       title: t('dashboard.quickLinks.faq.title'),
       description: t('dashboard.quickLinks.faq.description'),
-      icon: <HelpCircle className="w-5 h-5 text-amber-500" />
+      icon: <HelpCircle className="w-5 h-5 text-amber-500" />,
+      href: '/resources#faq',
     },
     {
       id: 'support',
       title: t('dashboard.quickLinks.support.title'),
       description: t('dashboard.quickLinks.support.description'),
-      icon: <LifeBuoy className="w-5 h-5 text-blue-500" />
+      icon: <LifeBuoy className="w-5 h-5 text-blue-500" />,
+      href: '/resources#community',
     },
   ]), [t]);
 
@@ -281,6 +287,10 @@ const Dashboard: React.FC = () => {
     setShowImageModal(false);
     setShowPromptModal(false);
     setQuickStartOpen(false);
+    setSubmitProgress(0);
+    if (jobStatusRef.current) {
+      jobStatusRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const resetJob = () => {
@@ -382,7 +392,7 @@ const Dashboard: React.FC = () => {
                   <UploadForm onSubmit={handleJobSubmit} presetMode={presetMode} presetModeSignal={presetModeSignal} />
                 </div>
               ) : (
-                <div className="w-full">
+                <div className="w-full" ref={jobStatusRef}>
                   <JobStatusComponent jobId={currentJobId} onReset={resetJob} />
                 </div>
               )}
@@ -571,7 +581,13 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickLinks.map((link) => (
-            <div key={link.id} className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur flex items-start gap-4 hover:-translate-y-1 transition-transform shadow-sm">
+            <a
+              key={link.id}
+              href={link.href}
+              target={link.href?.startsWith('http') ? '_blank' : undefined}
+              rel="noreferrer"
+              className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur flex items-start gap-4 hover:-translate-y-1 transition-transform shadow-sm"
+            >
               <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 {link.icon}
               </div>
@@ -579,7 +595,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-lg font-bold text-slate-900 dark:text-white">{link.title}</p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{link.description}</p>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </section>

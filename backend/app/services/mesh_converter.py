@@ -95,6 +95,16 @@ class MeshConverter:
                     extra={"output_size": len(output_bytes), "method": "mayo"}
                 )
 
+                # Sanity-check Mayo output; if unusable, fall back to trimesh export.
+                try:
+                    mesh_check = self._load_mesh(output_bytes, output_format)
+                    if mesh_check.vertices is None or len(mesh_check.vertices) == 0 or len(mesh_check.faces) == 0:
+                        raise MeshConversionError("Mayo output has no mesh data")
+                except Exception as exc:
+                    logger.warning(f"Mayo output not usable ({exc}); falling back to trimesh export for {output_format}")
+                    mesh = self._load_mesh(input_bytes, input_format)
+                    return self._export_mesh(mesh, output_format)
+
                 return output_bytes
 
             except MayoConversionError as exc:

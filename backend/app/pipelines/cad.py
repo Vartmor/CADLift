@@ -12,6 +12,7 @@ from app.models import Job
 from app.services.storage import storage_service
 from app.pipelines.geometry import build_artifacts, build_artifacts_multistory
 from app.core.errors import CADLiftError, ErrorCode
+from app.services.co2tools_adapter import get_co2tools_service, Co2ToolsError
 
 
 async def run(job: Job, session: AsyncSession) -> None:
@@ -48,7 +49,9 @@ async def run(job: Job, session: AsyncSession) -> None:
 
     # Persist CAD-ready DXF as the primary output.
     # Get wall thickness from model (default: 200mm for architectural quality)
+    params = job.params or {}
     wall_thickness = float(model.get("wall_thickness", 200.0))
+    only_2d = bool(params.get("only_2d", False))
 
     # Phase 6.3: Use multi-story generation if multiple floors detected
     if model.get("is_multistory", False) and model.get("floors"):
@@ -56,14 +59,16 @@ async def run(job: Job, session: AsyncSession) -> None:
         dxf_bytes, step_bytes = build_artifacts_multistory(
             model["floors"],
             wall_thickness=wall_thickness,
-            openings=model.get("openings", [])
+            openings=model.get("openings", []),
+            only_2d=only_2d,
         )
     else:
         dxf_bytes, step_bytes = build_artifacts(
             model["polygons"],
             model["extrude_height"],
             wall_thickness=wall_thickness,
-            openings=model.get("openings", [])  # Phase 6.2 - door & window support
+            openings=model.get("openings", []),  # Phase 6.2 - door & window support
+            only_2d=only_2d,
         )
     dxf_storage_key, dxf_size = storage_service.save_bytes(
         dxf_bytes,
@@ -102,9 +107,43 @@ async def run(job: Job, session: AsyncSession) -> None:
     session.add(step_file)
     await session.flush()
 
-    job.output_file_id = dxf_file.id
     merged_params = job.params or {}
     merged_params["step_file_id"] = step_file.id
+
+    # Optional: generate STL using co2tools (uses Footprint layer from our DXF)
+    if bool(params.get("use_co2tools", False)):
+        co2 = get_co2tools_service()
+        if co2.enabled:
+            try:
+                stl_bytes = co2.dxf_bytes_to_stl(
+                    dxf_bytes,
+                    extrude_height=float(model.get("extrude_height", 3000.0)),
+                    layer_cut="Footprint",
+                )
+                stl_storage_key, stl_size = storage_service.save_bytes(
+                    stl_bytes,
+                    role="output",
+                    job_id=job.id,
+                    filename="model_co2tools.stl",
+                )
+                stl_file = FileModel(
+                    user_id=job.user_id,
+                    job_id=job.id,
+                    role="output",
+                    storage_key=stl_storage_key,
+                    original_name="model_co2tools.stl",
+                    mime_type="application/sla",
+                    size_bytes=stl_size,
+                )
+                session.add(stl_file)
+                await session.flush()
+                merged_params["co2tools_stl_file_id"] = stl_file.id
+            except Co2ToolsError as exc:
+                logger.warning("co2tools STL generation failed", extra={"error": str(exc)})
+        else:
+            logger.info("co2tools not available; skipping STL generation")
+
+    job.output_file_id = dxf_file.id
     job.params = merged_params
     job.status = "completed"
     job.error_code = None
@@ -185,11 +224,21 @@ def _generate_model(path: Path, job: Job) -> dict:
         return entity_layer in allowed_layers
 
     def _add_polygon(points: list[list[float]], floor_level: int | None = None) -> None:
-        """Add polygon to the appropriate floor (Phase 6.3)."""
+        """
+        Add polygon to the appropriate floor (Phase 6.3).
+
+        Accept clockwise and counter-clockwise windings; normalize to CCW so downstream
+        offset/extrusion behaves consistently.
+        """
         if len(points) < 3:
             return
-        if _polygon_area(points) <= 0:
-            return
+
+        area = _polygon_area(points)
+        if abs(area) <= 1e-6:
+            return  # Degenerate polygon
+        if area < 0:
+            points = list(reversed(points))  # Normalize to CCW
+
         polygons.append(points)
 
         # Track floor (Phase 6.3)

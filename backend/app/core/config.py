@@ -3,7 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     app_name: str = "CADLift Backend"
     api_v1_prefix: str = "/api/v1"
     environment: str = "development"
@@ -25,13 +25,14 @@ class Settings(BaseSettings):
     vision_api_key: str | None = None
     vision_timeout_seconds: float = 30.0
     max_upload_mb: int = 25
-    # Gemini image generation (Nano Banana / Pro)
-    gemini_api_key: str | None = None
-    gemini_image_model: str = "gemini-3-pro-image-preview"
-    gemini_image_aspect_ratio: str = "1:1"
-    gemini_image_resolution: str = "1K"  # 1K, 2K, 4K (per model support)
-    gemini_image_fallback_model: str | None = "gemini-2.5-flash-image"  # optional fallback if primary hits quota
-    enable_gemini_triposg: bool = True
+    # Stable Diffusion (local) for cost-free image generation
+    enable_stable_diffusion: bool = False
+    stable_diffusion_model: str = "runwayml/stable-diffusion-v1-5"
+    stable_diffusion_device: str | None = None  # auto-select if None
+    stable_diffusion_height: int = 640
+    stable_diffusion_width: int = 640
+    stable_diffusion_steps: int = 30
+    stable_diffusion_guidance: float = 7.5
 
 
 @lru_cache()

@@ -13,6 +13,9 @@ interface JobStatusProps {
 const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
   const { t } = useTranslation();
   const job = useJobPolling(jobId);
+  const glbUrl = job?.glb_download_url;
+  const dxfUrl = job?.dxf_download_url || job?.download_url;
+  const stepUrl = job?.step_download_url;
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const status = job?.status ?? StatusEnum.PENDING;
   const logKey = job?.logKey ?? 'status_pending';
@@ -140,7 +143,7 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                 {/* View in 3D Button */}
                 <button
                   onClick={() => setIsViewerOpen(true)}
-                  disabled={!job?.glb_download_url}
+                  disabled={!glbUrl}
                   className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-500 to-cyan-500 text-white px-6 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Eye size={20} />
@@ -150,31 +153,31 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                 {/* Download Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href={job?.dxf_download_url}
+                    href={dxfUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 rounded-xl font-bold shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
-                    aria-disabled={!job?.dxf_download_url}
+                    aria-disabled={!dxfUrl}
                   >
                     <Download size={20} />
                     <span>{t('common.download_btn')} (DXF)</span>
                   </a>
                   <a
-                    href={job?.step_download_url}
+                    href={stepUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50"
-                    aria-disabled={!job?.step_download_url}
+                    aria-disabled={!stepUrl}
                   >
                     <Layers size={18} />
                     <span>Download STEP</span>
                   </a>
                   <a
-                    href={job?.glb_download_url}
+                    href={glbUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50"
-                    aria-disabled={!job?.glb_download_url}
+                    aria-disabled={!glbUrl}
                   >
                     <Download size={18} />
                     <span>Download GLB</span>
@@ -202,10 +205,10 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
       <Viewer3DModal
         isOpen={isViewerOpen}
         onClose={() => setIsViewerOpen(false)}
-        modelUrl={job?.glb_download_url}
-        fileName={job?.outputName || 'model.glb'}
+        modelUrl={glbUrl}
+        fileName={(job?.outputName && job.outputName.endsWith('.glb') ? job.outputName : 'model.glb')}
         title="3D Model Viewer"
-        downloadUrl={job?.glb_download_url}
+        downloadUrl={glbUrl}
       />
     </div>
   );

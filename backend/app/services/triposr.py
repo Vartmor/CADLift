@@ -12,6 +12,7 @@ Features:
 """
 from __future__ import annotations
 
+import os
 import sys
 import logging
 from pathlib import Path
@@ -22,21 +23,24 @@ from PIL import Image
 
 logger = logging.getLogger("cadlift.services.triposr")
 
-# Check if TripoSR is available
+# Check if TripoSR is available (opt-in; avoids hard crashes on missing native deps)
 TRIPOSR_AVAILABLE = False
-_triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
-try:
-    import torch
-    if _triposr_path.exists():
-        sys.path.insert(0, str(_triposr_path))
-        from tsr.system import TSR
-        from tsr.utils import remove_background, resize_foreground
-        TRIPOSR_AVAILABLE = True
-        logger.info(f"TripoSR module found at {_triposr_path}")
-    else:
-        logger.warning(f"TripoSR not found at {_triposr_path}")
-except ImportError as e:
-    logger.warning(f"TripoSR dependencies not available: {e}")
+if os.environ.get("TRIPOSR_DISABLE", "0") != "1":
+    _triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
+    try:
+        import torch
+        if _triposr_path.exists():
+            sys.path.insert(0, str(_triposr_path))
+            from tsr.system import TSR
+            from tsr.utils import remove_background, resize_foreground
+            TRIPOSR_AVAILABLE = True
+            logger.info(f"TripoSR module found at {_triposr_path}")
+        else:
+            logger.warning(f"TripoSR not found at {_triposr_path}")
+    except ImportError as e:
+        logger.warning(f"TripoSR dependencies not available: {e}")
+else:
+    logger.info("TRIPOSR_DISABLE=1 -> TripoSR service disabled at import time")
 
 
 class TripoSRError(Exception):
@@ -99,6 +103,19 @@ class TripoSRService:
         except Exception as exc:
             logger.error(f"Failed to load TripoSR model: {exc}")
             raise TripoSRError(f"Failed to load TripoSR model: {exc}")
+
+    # Backwards-compatibility helpers expected by tests
+    def _load_model(self):
+        """Load and return the underlying TSR model."""
+        self._ensure_loaded()
+        return self.model
+
+    def _load_image(self, image_bytes: bytes) -> Image.Image:
+        """Load image bytes into a PIL Image."""
+        try:
+            return Image.open(BytesIO(image_bytes)).convert("RGB")
+        except Exception as exc:  # noqa: BLE001
+            raise TripoSRError(f"Failed to load image bytes: {exc}") from exc
 
     def generate_from_image(self, image_bytes: bytes, bg_removal: bool = True, foreground_ratio: float = 0.85) -> bytes:
         """

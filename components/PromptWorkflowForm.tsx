@@ -12,7 +12,7 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<'2d' | '3d'>('3d');
-  const [detail, setDetail] = useState(70);
+  const [detail] = useState(100); // always max detail for prompts
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,19 +102,11 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
           <PenLine size={14} />
           {t('dashboard.promptForm.detailLabel')}
         </label>
-        <input
-          type="range"
-          min={10}
-          max={100}
-          step={5}
-          value={detail}
-          onChange={(e) => setDetail(parseInt(e.target.value, 10))}
-          className="w-full mt-3 accent-primary-500"
-        />
-        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-          <span>{t('dashboard.promptForm.detailLow')}</span>
-          <span>{detail}%</span>
-          <span>{t('dashboard.promptForm.detailHigh')}</span>
+        <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1 font-semibold">
+            {t('dashboard.promptForm.detailHigh')}
+          </span>
+          <span className="text-xs opacity-70">{detail}% (max)</span>
         </div>
       </div>
 

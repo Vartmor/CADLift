@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -418,11 +418,11 @@ def _snap_to_axis(points: list[list[float]], angle_threshold: float = 5.0) -> li
 
         angle = np.degrees(np.arctan2(dy, dx))
 
-        # Snap to horizontal (0° or 180°)
+        # Snap to horizontal (0┬░ or 180┬░)
         if abs(angle) < angle_threshold or abs(abs(angle) - 180) < angle_threshold:
             curr[1] = prev[1]  # Same Y coordinate
 
-        # Snap to vertical (90° or -90°)
+        # Snap to vertical (90┬░ or -90┬░)
         elif abs(abs(angle) - 90) < angle_threshold:
             curr[0] = prev[0]  # Same X coordinate
 

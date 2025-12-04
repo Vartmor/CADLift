@@ -37,10 +37,10 @@ def test_parametric_door_single():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(solid, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "door_single.step"
+        cq.exporters.export(solid, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "door_single.step").write_bytes(step_bytes)
     print(f"✓ Saved single door to {output_path}/door_single.step")
@@ -63,10 +63,10 @@ def test_parametric_door_double():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(solid, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "door_double.step"
+        cq.exporters.export(solid, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "door_double.step").write_bytes(step_bytes)
     print(f"✓ Saved double door to {output_path}/door_double.step")
@@ -89,10 +89,10 @@ def test_parametric_window():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(solid, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "window_fixed.step"
+        cq.exporters.export(solid, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "window_fixed.step").write_bytes(step_bytes)
     print(f"✓ Saved window to {output_path}/window_fixed.step")
@@ -114,10 +114,10 @@ def test_furniture_desk():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(desk, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "desk.step"
+        cq.exporters.export(desk, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "desk.step").write_bytes(step_bytes)
     print(f"✓ Saved desk to {output_path}/desk.step")
@@ -138,10 +138,10 @@ def test_furniture_chair():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(chair, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "chair.step"
+        cq.exporters.export(chair, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "chair.step").write_bytes(step_bytes)
     print(f"✓ Saved chair to {output_path}/chair.step")
@@ -163,10 +163,10 @@ def test_furniture_bed():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(bed, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "bed.step"
+        cq.exporters.export(bed, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "bed.step").write_bytes(step_bytes)
     print(f"✓ Saved bed to {output_path}/bed.step")
@@ -187,10 +187,10 @@ def test_furniture_table():
     output_path = Path("test_outputs") / "components"
     output_path.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp:
-        cq.exporters.export(table, tmp.name, "STEP")
-        step_bytes = Path(tmp.name).read_bytes()
-        Path(tmp.name).unlink()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        step_path = Path(tmpdir) / "table.step"
+        cq.exporters.export(table, str(step_path), "STEP")
+        step_bytes = step_path.read_bytes()
 
     (output_path / "table.step").write_bytes(step_bytes)
     print(f"✓ Saved table to {output_path}/table.step")

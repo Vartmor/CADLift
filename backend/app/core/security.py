@@ -49,10 +49,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Content-Security-Policy"
         ] = (
             "default-src 'self' data: blob:; "
-            "img-src 'self' data: blob:; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: blob: https://fastapi.tiangolo.com https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
             "font-src 'self' https://fonts.gstatic.com data:; "
-            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://aistudiocdn.com; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://aistudiocdn.com https://cdn.jsdelivr.net; "
             "connect-src 'self'; "
             "frame-ancestors 'self'"
         )
@@ -76,8 +76,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app,
-        requests_per_minute: int = 60,
-        requests_per_hour: int = 1000,
+        requests_per_minute: int = 2000,  # further relaxed to avoid 429 during local polling
+        requests_per_hour: int = 50000,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
@@ -163,10 +163,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": "rate_limit_exceeded",
                     "message": reason,
-                    "retry_after": 60,  # Seconds
+                    "retry_after": 5,  # Seconds
                 },
                 headers={
-                    "Retry-After": "60",
+                    "Retry-After": "5",
                     "X-RateLimit-Limit-Minute": str(self.requests_per_minute),
                     "X-RateLimit-Limit-Hour": str(self.requests_per_hour),
                 },

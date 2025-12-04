@@ -40,7 +40,7 @@ class _FakeTripoSG:
 
 @pytest.mark.asyncio
 async def test_prompt_pipeline_gemini_triposg(monkeypatch, tmp_path: Path):
-    """Ensure prompt pipeline uses Gemini→TripoSG when enabled."""
+    pytest.skip("Gemini image generation removed; OpenAI path only")
 
     monkeypatch.setattr(prompt_pipeline, "get_gemini_image_service", lambda: _FakeGemini())
     monkeypatch.setattr(prompt_pipeline, "get_triposg_service", lambda: _FakeTripoSG())

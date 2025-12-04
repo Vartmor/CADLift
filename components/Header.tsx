@@ -32,7 +32,7 @@ const Header: React.FC = () => {
   const navItems: NavItem[] = useMemo(() => ([
     { key: 'dashboard', label: t('navigation.dashboard'), path: '/dashboard' },
     { key: 'projects', label: t('navigation.projects'), path: '/dashboard', hash: '#activity' },
-    { key: 'docs', label: t('navigation.docs'), external: true, href: 'https://cadlift-docs.example.com' },
+    { key: 'resources', label: t('navigation.resources'), path: '/resources' },
     { key: 'about', label: t('navigation.about'), path: '/about' },
   ]), [t]);
 
@@ -133,14 +133,17 @@ const Header: React.FC = () => {
 
           {/* Sign In / User Button */}
           {isDashboard ? (
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                  U
-                </div>
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 hidden sm:inline">User</span>
-             </div>
+             <button
+               onClick={() => navigate('/profile')}
+               className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition"
+             >
+               <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                 U
+               </div>
+               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 hidden sm:inline">User</span>
+             </button>
           ) : (
-            <button 
+            <button
               onClick={() => navigate('/signin')}
               className={`flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg hover:shadow-xl cursor-pointer ${isAuthPage ? 'hidden' : ''}`}
             >

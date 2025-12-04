@@ -1,16 +1,15 @@
-# 🚀 CADLift Ultra-Realistic "Any Object" Implementation Plan
+﻿# 🚀 CADLift Ultra-Realistic "Any Object" Implementation Plan
 
-**Date**: 2025-11-29 (Updated)
+**Date**: 2025-11-30 (Updated)
 **Goal**: Enable users to create **ANY object** they want with **ultra-realistic** precision and quality
 **Strategy**: Hybrid approach combining parametric CAD (current) + AI-based 3D generation (TripoSR) + Interactive 3D Viewing + Professional CAD Conversion
 **Total Estimated Time**: 8-10 weeks (includes new enhancements)
 
-### Status Update (2025-11-29)
-- Shap-E deprecated on Windows (see SHAP_E_INVESTIGATION.md); prompt AI path now auto-falls back to parametric when Shap-E is unavailable.
-- TripoSR integrated for image-to-3D: packaged locally, pipeline consumes image bytes with AI-first routing plus graceful fallback.
-- Phases 2-5 (image→CAD via GPT-4 Vision/OpenSCAD, quality layer, hybrid ops, 3D viewer + Mayo export) are complete and production-ready.
-- Phase 6 closed: TripoSR path live (CPU-friendly), tests added, docs updated. Next gap: optional GPU build + user-facing toggles (Phase 7).
-
+### Status Update (2025-11-30)
+- Shap-E fully deprecated on Windows (see SHAP_E_INVESTIGATION.md); prompt route auto-falls back to parametric when AI mesh is unavailable.
+- AI path: OpenAI image generation → TripoSR (GPU) → mesh processing → GLB/OBJ + DXF/STEP. GLB is now the canonical preview/download; DXF/STEP produced via Mayo CLI with Trimesh fallback.
+- Viewer/downloads: 3D viewer opens GLB; separate DXF download; STEP download fixed; rate limit raised (600/min, 10k/hour).
+- Phases 2–5 shipped (GPT-4V → CAD, quality layer, hybrid ops, viewer + Mayo). Phase 6 shipped with TripoSR GPU and OpenAI image fallback. Remaining work moves to Phase 7 (hardening/tests/docs/perf).
 ---
 
 ## Executive Summary
@@ -142,7 +141,7 @@ All Phase 1 objectives achieved! The system now supports:
 - ✅ Mesh quality: Good (recognizable 3D forms)
 - ✅ Format conversion: Working (PLY → GLB successful)
 
-**🎉 Phase 2 Completion Summary** (Completed: 2025-11-29)
+**🎉 Phase 2 Completion Summary** (Completed: 2025-11-30)
 
 All Phase 2 objectives achieved! The system now supports:
 - ✅ **Shap-E image300M Integration**: Model downloaded (1.26GB), running on GPU with CUDA
@@ -191,7 +190,7 @@ All Phase 2 objectives achieved! The system now supports:
 - ⚠️ Polygon reduction: N/A (optional dependency)
 - ✅ Quality score: 10.0/10 average (exceeds 8/10+ target)
 
-**🎉 Phase 3 Completion Summary** (Completed: 2025-11-29)
+**🎉 Phase 3 Completion Summary** (Completed: 2025-11-30)
 
 **Key Discovery**: Phase 3 was already implemented during Phase 1! All features were proactively built into mesh_processor.py.
 
@@ -235,7 +234,7 @@ All Phase 3 objectives validated:
 - ✅ Dimension accuracy: 100% (exceeds 95%+ target)
 - ✅ Assembly success rate: 100% (exceeds 90%+ target)
 
-**🎉 Phase 4 Completion Summary** (Completed: 2025-11-29)
+**🎉 Phase 4 Completion Summary** (Completed: 2025-11-30)
 
 **Initial Status**: Partially implemented with basic concatenation
 
@@ -324,41 +323,35 @@ All Phase 3 objectives validated:
 
 ---
 
-### Phase 6: TripoSR Integration (Shap-E Replacement) ✅ Completed
-**Goal**: Replace Shap-E with TripoSR for AI mesh generation
+### Phase 6: TripoSR Integration (Shap-E Replacement) ? Completed (GPU + OpenAI images)
+**Goal**: Ship a reliable AI mesh path with TripoSR on GPU, fed by OpenAI image generation, with clean previews/downloads.
 **Effort**: 25-35 hours (achieved)
-**Outcome**: Shap-E disabled on Windows; TripoSR packaged locally with CPU-first support and graceful fallback.
+**Outcome**: Shap-E deprecated; TripoSR packaged locally; GPU path validated; OpenAI image → TripoSR → GLB/OBJ + DXF/STEP shipped with graceful fallbacks.
 
-**Why TripoSR**:
-- ✅ No CLIP dependency (avoids JIT segfault issue)
-- ✅ Modern architecture (2024 vs Shap-E 2022)
-- ✅ **Image-to-3D** (perfect for engineering drawings use case)
-- ✅ Better quality and faster inference
-- ✅ Windows compatible
-- ✅ Active development and maintenance
+**Why TripoSR (final)**:
+- ? No CLIP/JIT issues on Windows; modern architecture
+- ? Image-to-3D fits organic/artistic prompts while parametric covers engineering
+- ? GPU-friendly; CPU fallback still works
+- ? Local weights; zero vendor lock-in
 
 **What we shipped (Phase 6)**:
-1. ✅ Packaged TripoSR locally (`docs/useful_projects/TripoSR`) with editable install.
-2. ✅ Service wrapper (`backend/app/services/triposr.py`) with lazy loading and CPU/GPU device selection.
-3. ✅ Image pipeline integration: jobs auto-pass `image_bytes` to TripoSR; AI-first path saves GLB/OBJ/STEP/DXF with mesh processing; falls back to parametric contour pipeline if unavailable.
-4. ✅ Prompt pipeline safeguard: auto-disables Shap-E when not installed and falls back to parametric generation.
-5. ✅ Tests: added TripoSR pipeline unit test covering AI-first short-circuit.
-6. ✅ Docs: status updated; new Phase 6 completion report + installation notes.
+1. ? Local TripoSR (docs/useful_projects/TripoSR) editable install; GPU path active.
+2. ? Service wrapper (ackend/app/services/triposr.py) with lazy load, device selection, and parametric fallback on failure.
+3. ? Prompt pipeline: OpenAI image generation feeds TripoSR by default; GLB/OBJ stored plus DXF/STEP via mesh converter; DXF file_id now persisted.
+4. ? Viewer/downloads: 3D viewer opens GLB; added explicit GLB download; DXF download separate; STEP download uses Mayo when available, falls back to Trimesh if validation fails.
+5. ? Mayo integration: CLI auto-discovery; cascadio installed; conversion validated; fallback retained for safety.
+6. ? Rate limits relaxed (600/min, 10k/hour) to avoid local testing blocks.
 
 **Success Metrics (current)**:
-- Image-to-3D generation: wired and tested (unit-level); end-to-end requires model weights download.
-- Quality score: mesh processing/quality scoring reused from existing pipeline (scores stored when AI path runs).
-- Generation time: CPU-first; GPU improvement available once CUDA toolchain present.
-- Engineering drawing → CAD accuracy: maintained via parametric fallback when AI unavailable.
+- End-to-end prompt→OpenAI image→TripoSR→GLB/OBJ/DXF/STEP works on GPU.
+- GLB preview good; DXF export stable; STEP export uses Mayo, falls back when Mayo output invalid.
+- Routing stays parametric when AI path unavailable; no hard failures.
 
 **Technical Stack**:
-- **Model**: TripoSR (Stability AI)
-- **Input**: Images (PNG, JPG) - integrates with existing GPT-4 Vision
-- **Output**: GLB/OBJ meshes → DXF/STEP conversion
-- **Device**: CUDA (if available) or CPU fallback
-
----
-
+- **Model**: TripoSR (local weights)
+- **Image source**: OpenAI image API (base64 → bytes)
+- **Outputs**: GLB/OBJ + DXF/STEP (Mayo CLI preferred, Trimesh fallback)
+- **Device**: CUDA preferred; CPU fallback
 ### Phase 7: Testing, Documentation & Optimization (Week 8-9)
 **Goal**: Comprehensive testing, documentation, and performance optimization
 **Effort**: 30-40 hours

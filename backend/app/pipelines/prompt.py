@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import re
@@ -6,49 +6,41 @@ from pathlib import Path
 from typing import Any
 import logging
 import io
+import inspect
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import File as FileModel
 from app.models import Job
 from app.services.storage import storage_service
-from app.pipelines.geometry import build_artifacts
+from app.pipelines.geometry import build_artifacts, export_gltf_with_materials
 from app.services.llm import llm_service
 from app.services.routing import get_routing_service
 from app.pipelines.ai import run_ai_pipeline
-from app.services.shap_e import get_shap_e_service
 from app.core.errors import CADLiftError, ErrorCode
 from app.services.mesh_converter import get_mesh_converter, MeshConversionError
 from app.services.mesh_processor import process_mesh
 from app.services.openai_image import get_openai_image_service, OpenAIImageError
 from app.services.triposr import get_triposr_service, TripoSRError
+from app.services.stable_diffusion import get_stable_diffusion_service, StableDiffusionError
 import math
 import ezdxf
 import cadquery as cq
 from io import BytesIO
 
-
-def _build_gemini_prompt(user_prompt: str) -> str:
+def _build_image_prompt(user_prompt: str) -> str:
     """
-    Enrich user prompt for image generation so TripoSG gets a clean reference.
+    Enrich user prompt for image generation so TripoSR gets a clean reference.
 
-    Emphasizes:
-    - Single centered object
-    - Neutral background
-    - Orthographic view
-    - High detail, no text/watermark
-    - 1:1 aspect framing
+    Keep this short to avoid CLIP truncation.
     """
+    base = user_prompt.strip()
     return (
-        "Generate a single, centered object with a clean reference image. "
-        "Subject: " + user_prompt.strip() + ". "
-        "Style: photorealistic product shot, high detail, sharp focus. "
-        "Camera: orthographic front view, straight-on. "
-        "Background: neutral gray, no clutter. "
-        "Lighting: even studio lighting, soft shadows. "
-        "Frame: square 1:1, object fully in frame. "
-        "Restrictions: no text, no watermark, no extra props."
+        f"Centered {base}. Photorealistic product shot, neutral gray background, soft studio light, sharp focus, "
+        "orthographic front view, 1:1 square frame, whole object in frame."
     )
+
+NEGATIVE_PROMPT = "blurry, lowres, noisy, text, watermark, logo, multiple objects, cropped, clutter, distortion"
 
 
 logger = logging.getLogger("cadlift.pipeline.prompt")
@@ -68,28 +60,76 @@ async def run(job: Job, session: AsyncSession) -> None:
         extra={"pipeline": routing.pipeline, "category": routing.object_category.value, "confidence": routing.confidence},
     )
 
-    use_ai = params.get("use_ai", True)
-    use_gemini_triposg = params.get("use_gemini_triposg", True)
-
-    # New AI path: OpenAI image -> TripoSR mesh (organic/artistic prompts)
-    if use_ai and use_gemini_triposg and routing.pipeline == "ai":
+    # Always try AI image path first: Stable Diffusion → (fallback OpenAI) → TripoSR.
+    # If anything in this chain fails, fall back to parametric.
+    try_ai = bool(params.get("use_ai", True))
+    if try_ai:
         img_service = get_openai_image_service()
+        sd_service = get_stable_diffusion_service()
         triposr = get_triposr_service()
+        target_faces = int(max(20000, min(120000, 20000 + float(params.get("detail", 70)) * 800)))
+        enriched_prompt = _build_image_prompt(prompt_text)
+        image_bytes = None
+        image_provider = None
 
-        if img_service.is_available() and triposr.enabled:
+        if sd_service.is_available() and triposr.enabled:
             try:
-                logger.info("OpenAI→TripoSR path selected", extra={"job_id": job.id})
-                enriched_prompt = _build_gemini_prompt(prompt_text)
+                logger.info("StableDiffusion->TripoSR path selected", extra={"job_id": job.id})
+                image_bytes = sd_service.generate_image(enriched_prompt, negative_prompt=NEGATIVE_PROMPT)
+                image_provider = "stable_diffusion"
+            except StableDiffusionError as exc:
+                logger.warning("Stable Diffusion image generation failed; falling back to OpenAI", extra={"error": str(exc)})
+            except Exception as exc:
+                logger.warning("Stable Diffusion unexpected error; falling back to OpenAI", extra={"error": str(exc)})
+
+        if image_bytes is None and img_service.is_available() and triposr.enabled:
+            try:
+                logger.info("OpenAI->TripoSR fallback path selected", extra={"job_id": job.id})
                 image_bytes = img_service.generate_image(enriched_prompt)
+                image_provider = "openai"
+            except OpenAIImageError as exc:
+                logger.warning("OpenAI image generation failed; falling back to parametric", extra={"error": str(exc)})
+                use_ai = False
+            except Exception as exc:
+                logger.warning("OpenAI image unexpected error; falling back to parametric", extra={"error": str(exc)})
+                use_ai = False
+
+        if image_bytes is not None and triposr.enabled: 
+            try: 
+                # Persist the generated reference image for auditing/debug 
+                ref_file = None 
+                try: 
+                    ref_storage_key, ref_size = storage_service.save_bytes( 
+                        image_bytes,
+                        role="reference_image",
+                        job_id=job.id,
+                        filename="prompt_reference.png",
+                    )
+                    ref_file = FileModel(
+                        user_id=job.user_id,
+                        job_id=job.id,
+                        role="reference_image",
+                        storage_key=ref_storage_key,
+                        original_name="prompt_reference.png",
+                        mime_type="image/png",
+                        size_bytes=ref_size,
+                    )
+                    session.add(ref_file)
+                    await session.flush()
+                except Exception as exc:  # pragma: no cover
+                    logger.warning("Failed to store reference image", extra={"error": str(exc)})
 
                 converter = get_mesh_converter()
                 obj_bytes = triposr.generate_from_image(image_bytes)
                 glb_bytes = converter.convert(obj_bytes, "obj", "glb")
-                target_faces = int(max(20000, min(120000, 20000 + float(params.get("detail", 70)) * 800)))
                 quality = None
                 try:
-                    processed_glb, quality = await process_mesh(glb_bytes, file_type="glb", target_faces=target_faces, min_quality=7.0)
-                except Exception as exc:  # pragma: no cover
+                    pm_result = process_mesh(glb_bytes, file_type="glb", target_faces=target_faces, min_quality=7.0)
+                    if inspect.isawaitable(pm_result):
+                        processed_glb, quality = await pm_result
+                    else:
+                        processed_glb, quality = pm_result
+                except Exception as exc:
                     logger.warning(f"Mesh processing skipped: {exc}")
                     processed_glb = glb_bytes
 
@@ -145,8 +185,9 @@ async def run(job: Job, session: AsyncSession) -> None:
 
                 merged_params = dict(params)
                 merged_params["ai_metadata"] = {
-                    "pipeline": "openai_triposr",
-                    "provider": "openai+triposr",
+                    "pipeline": "ai_image_triposr",
+                    "provider": f"{image_provider}+triposr" if image_provider else "triposr",
+                    "image_provider": image_provider,
                     "quality_metrics": {
                         "processing_quality_score": getattr(quality, "overall_score", None),
                         "faces": getattr(quality, "face_count", None),
@@ -154,6 +195,10 @@ async def run(job: Job, session: AsyncSession) -> None:
                         "watertight": getattr(quality, "is_watertight", None),
                     },
                 }
+                if ref_file:
+                    merged_params["ai_metadata"]["reference_image_file_id"] = ref_file.id
+                    merged_params["reference_image_file_id"] = ref_file.id
+                    merged_params["output_image_file_id"] = ref_file.id
                 if "glb" in saved_files:
                     merged_params["glb_file_id"] = saved_files["glb"].id
                 if "step" in saved_files:
@@ -167,82 +212,13 @@ async def run(job: Job, session: AsyncSession) -> None:
                 return
 
             except (TripoSRError, MeshConversionError, CADLiftError) as exc:
-                logger.warning("OpenAI→TripoSR path failed, falling back to parametric", extra={"error": str(exc)})
-                use_ai = False  # force parametric fallback
-            except OpenAIImageError as exc:
-                # If OpenAI hard-fails (quota/HTTP), fall back to parametric.
-                logger.warning("OpenAI image generation failed, falling back to parametric", extra={"error": str(exc)})
-                use_ai = False
+                logger.warning("Image->TripoSR path failed, falling back to parametric", extra={"error": str(exc)})
+            except Exception as exc:
+                logger.warning("Image->TripoSR unexpected error, falling back to parametric", extra={"error": str(exc)})
 
-        else:
-            logger.warning("OpenAI→TripoSR path unavailable (service disabled); using fallback")
-            use_ai = False
-    if use_ai and not get_shap_e_service().enabled:
-        logger.warning("Shap-E not available; falling back to parametric prompt pipeline")
-        use_ai = False
-
-    # Prefer AI path for prompt jobs; if it fails, surface the error instead of silently falling back
-    if use_ai:
-        ai_result = await run_ai_pipeline(prompt_text, params, source_type="text")
-        if ai_result.get("error"):
-            raise CADLiftError(ErrorCode.SYS_UNEXPECTED_ERROR, details=str(ai_result["error"]))
-        outputs = ai_result.get("outputs") or {}
-        if not outputs:
-            raise CADLiftError(ErrorCode.SYS_UNEXPECTED_ERROR, details="AI generation returned no outputs")
-
-        saved_files: dict[str, FileModel] = {}
-        # Persist available formats
-        for fmt, data in outputs.items():
-            if not data:
-                continue
-            role = "output" if fmt in {"glb", "dxf", "obj"} else "output_step"
-            fname = f"prompt_model.{fmt}"
-            storage_key, size = storage_service.save_bytes(
-                data,
-                role=role,
-                job_id=job.id,
-                filename=fname,
-            )
-            file_rec = FileModel(
-                user_id=job.user_id,
-                job_id=job.id,
-                role=role,
-                storage_key=storage_key,
-                original_name=fname,
-                mime_type=f"application/{fmt}",
-                size_bytes=size,
-            )
-            session.add(file_rec)
-            await session.flush()
-            saved_files[fmt] = file_rec
-
-        # Pick primary output preference: glb -> dxf -> step -> obj
-        primary = saved_files.get("glb") or saved_files.get("dxf") or saved_files.get("step") or saved_files.get("obj")
-        if not primary:
-            raise CADLiftError(ErrorCode.SYS_UNEXPECTED_ERROR, details="AI outputs could not be saved")
-
-        job.output_file_id = primary.id
-        job.status = "completed"
-        job.error_code = None
-        job.error_message = None
-
-        # Attach metadata/quality for frontend
-        merged_params = dict(params)
-        merged_params["ai_metadata"] = ai_result.get("metadata")
-        merged_params["quality_metrics"] = ai_result.get("metadata", {}).get("quality_metrics")
-
-        # Add file IDs for different formats (Phase 5A: 3D Viewer Integration)
-        if "glb" in saved_files:
-            merged_params["glb_file_id"] = saved_files["glb"].id
-        if "step" in saved_files:
-            merged_params["step_file_id"] = saved_files["step"].id
-        if "dxf" in saved_files:
-            merged_params["dxf_file_id"] = saved_files["dxf"].id
-        if "obj" in saved_files:
-            merged_params["obj_file_id"] = saved_files["obj"].id
-
-        job.params = merged_params
-        return
+        if image_bytes is None or not triposr.enabled:
+            logger.warning("Image-to-3D path unavailable; using fallback", extra={"triposr_enabled": triposr.enabled})
+            # fall back to parametric if image path unavailable
 
     instructions = await _generate_instructions(prompt_text, params)
     model = _instructions_to_model(instructions, prompt_text, params)
@@ -313,6 +289,37 @@ async def run(job: Job, session: AsyncSession) -> None:
     session.add(step_file)
     await session.flush()
 
+    # Optional: generate a GLB for the 3D viewer from parametric geometry
+    glb_file = None
+    if not bool(params.get("only_2d", False)):
+        try:
+            glb_bytes = export_gltf_with_materials(
+                model["contours"],
+                model["extrude_height"],
+                wall_thickness=wall_thickness,
+                material="concrete",
+                binary=True,
+            )
+            glb_storage_key, glb_size = storage_service.save_bytes(
+                glb_bytes,
+                role="output",
+                job_id=job.id,
+                filename="prompt_model.glb",
+            )
+            glb_file = FileModel(
+                user_id=job.user_id,
+                job_id=job.id,
+                role="output",
+                storage_key=glb_storage_key,
+                original_name="prompt_model.glb",
+                mime_type="model/gltf-binary",
+                size_bytes=glb_size,
+            )
+            session.add(glb_file)
+            await session.flush()
+        except Exception as exc:  # pragma: no cover - fallback to DXF/STEP only
+            logger.warning("GLB generation for parametric model failed", extra={"error": str(exc)})
+
     # Generate quality metrics for the output
     quality_metrics = _generate_quality_metrics(instructions, params, model)
 
@@ -320,6 +327,8 @@ async def run(job: Job, session: AsyncSession) -> None:
     merged_params = dict(params)
     merged_params["instructions"] = instructions
     merged_params["step_file_id"] = step_file.id
+    if glb_file:
+        merged_params["glb_file_id"] = glb_file.id
     merged_params["quality_metrics"] = quality_metrics
     job.params = merged_params
     job.output_file_id = dxf_file.id

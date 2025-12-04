@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, Box, Layers, Ruler, Sparkles, MousePointer2, FileDigit, Cpu } from 'lucide-react';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const howItWorksRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const scrollToHowItWorks = () => {
     howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,22 +50,22 @@ const Home: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
-              <span className="text-xs font-bold tracking-widest uppercase text-slate-600 dark:text-slate-300">Engine Online v1.0</span>
+              <span className="text-xs font-bold tracking-widest uppercase text-slate-600 dark:text-slate-300">{t('home.hero.badge')}</span>
             </div>
             
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-slate-900 dark:text-white leading-[0.9]">
-              Build <br/>
+              {t('home.hero.title_build')} <br/>
               <span className="relative inline-block">
                 <span className="relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-blue-600 dark:from-primary-400 dark:to-blue-400">
-                  Depth
+                  {t('home.hero.title_accent')}
                 </span>
                 <div className="absolute -bottom-2 left-0 w-full h-4 bg-primary-200/50 dark:bg-primary-900/50 -skew-x-12 -z-0"></div>
               </span> <br/>
-              Faster.
+              {t('home.hero.title_suffix')}
             </h1>
             
             <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-lg leading-relaxed border-l-4 border-primary-500 pl-6">
-              Stop manually extruding lines. Upload your raw DXF files and let our geometry engine construct the 3D solid in seconds.
+              {t('home.hero.subtitle')}
             </p>
             
             <div className="flex flex-wrap items-center gap-4">
@@ -71,7 +73,7 @@ const Home: React.FC = () => {
                 onClick={() => navigate('/dashboard')}
                 className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-slate-900 dark:bg-white dark:text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 dark:ring-offset-slate-900 hover:shadow-2xl hover:scale-105 cursor-pointer"
               >
-                Get Started
+                {t('home.hero.primaryCta')}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 <div className="absolute inset-0 -z-10 rounded-xl blur-lg bg-primary-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </button>
@@ -80,13 +82,13 @@ const Home: React.FC = () => {
                 onClick={scrollToHowItWorks}
                 className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-slate-700 dark:text-slate-200 transition-all duration-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg cursor-pointer"
               >
-                How it works
+                {t('home.hero.secondaryCta')}
               </button>
             </div>
             
             <div className="pt-8 flex items-center space-x-8 text-slate-400 dark:text-slate-500 grayscale opacity-70">
-               <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"><Layers size={16} /> DXF Compatible</span>
-               <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"><Box size={16} /> FBX Output</span>
+               <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"><Layers size={16} /> {t('home.hero.tag1')}</span>
+               <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"><Box size={16} /> {t('home.hero.tag2')}</span>
             </div>
           </div>
 

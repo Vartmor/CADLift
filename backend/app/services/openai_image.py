@@ -28,7 +28,7 @@ class OpenAIImageError(Exception):
 class OpenAIImageService:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.enabled = bool(self.settings.openai_api_key and self.settings.enable_gemini_triposg)
+        self.enabled = bool(self.settings.openai_api_key)
         if not self.settings.openai_api_key:
             logger.warning("OpenAI image service disabled: OPENAI_API_KEY missing")
             self.enabled = False

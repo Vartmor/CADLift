@@ -215,6 +215,7 @@ async def run_ai_pipeline(
                     "provider": "shap_e_local",
                     "status": "failed",
                     "message": str(e),
+                    "quality_metrics": None,
                 },
                 "error": str(e),
                 "outputs": None,
@@ -227,7 +228,8 @@ async def run_ai_pipeline(
             "metadata": {
                 "pipeline": "ai",
                 "status": "failed",
-                "error": str(e)
+                "error": str(e),
+                "quality_metrics": None,
             },
             "error": str(e),
             "fallback_used": False
@@ -238,7 +240,8 @@ async def run_ai_pipeline(
             "metadata": {
                 "pipeline": "ai",
                 "status": "error",
-                "error": str(e)
+                "error": str(e),
+                "quality_metrics": None,
             },
             "error": str(e),
             "fallback_used": False

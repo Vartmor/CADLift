@@ -11,6 +11,7 @@ Tests all remaining Phase 2 items that were implemented:
 - Phase 2.3.6: Dimension validation
 """
 
+from pathlib import Path
 import ezdxf
 import numpy as np
 import cv2
@@ -42,21 +43,24 @@ def test_text_entity_extraction():
     # Add MTEXT
     msp.add_mtext("3.0m x 5.0m", dxfattribs={"insert": (2500, 500)})
 
-    # Save and load
-    path = "/tmp/test_text_entities.dxf"
-    doc.saveas(path)
+    # Save and load (use a temp directory that exists on Windows)
+    import tempfile
 
-    # Create mock job (use proper Job fields: job_type and mode)
-    from pathlib import Path as PathlibPath
-    job = Job(user_id="test-user", job_type="convert", mode="cad", params={})
-    job.id = "test-job-1"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = str(Path(tmpdir) / "test_text_entities.dxf")
+        doc.saveas(path)
 
-    # Generate model
-    model = _generate_model(path, job)
+        # Create mock job (use proper Job fields: job_type and mode)
+        from pathlib import Path as PathlibPath
+        job = Job(user_id="test-user", job_type="convert", mode="cad", params={})
+        job.id = "test-job-1"
 
-    # Verify text labels extracted
-    assert "text_labels" in model
-    assert len(model["text_labels"]) == 3  # 2 TEXT + 1 MTEXT
+        # Generate model
+        model = _generate_model(path, job)
+
+        # Verify text labels extracted
+        assert "text_labels" in model
+        assert len(model["text_labels"]) == 3  # 2 TEXT + 1 MTEXT
 
     # Verify text content
     texts = [label["text"] for label in model["text_labels"]]
@@ -130,6 +134,47 @@ def test_axis_alignment():
     assert abs(snapped[1][0] - snapped[2][0]) < 0.01, "Second edge should be vertical"
 
     print(f"✅ Test 2.2.4 passed: Polygon snapped to axis-aligned edges")
+    return True
+
+
+def test_clockwise_polygons_supported():
+    """Ensure clockwise DXF polygons are preserved and normalized"""
+    doc = ezdxf.new("R2010")
+    msp = doc.modelspace()
+
+    # Clockwise winding (negative shoelace area)
+    cw_points = [(0, 0), (0, 3000), (4000, 3000), (4000, 0)]
+    msp.add_lwpolyline(cw_points, close=True)
+
+    import tempfile
+    from pathlib import Path as PathlibPath
+
+    with tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
+        doc.saveas(tmp.name)
+        path = tmp.name
+
+    job = Job(user_id="test-user", job_type="convert", mode="cad", params={})
+    job.id = "clockwise-job"
+
+    model = _generate_model(path, job)
+
+    try:
+        assert len(model["polygons"]) == 1, "Clockwise polygon should be retained"
+        poly = model["polygons"][0]
+
+        # Shoelace area should now be positive (CCW normalized)
+        area = 0.0
+        for i in range(len(poly)):
+            x1, y1 = poly[i]
+            x2, y2 = poly[(i + 1) % len(poly)]
+            area += x1 * y2 - x2 * y1
+        area *= 0.5
+
+        assert area > 0, "Polygon orientation should be normalized to CCW"
+    finally:
+        PathlibPath(path).unlink(missing_ok=True)
+
+    print("✅ Clockwise polygons normalized and preserved")
     return True
 
 
