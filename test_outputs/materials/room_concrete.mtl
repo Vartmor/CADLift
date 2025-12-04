@@ -1,0 +1,10 @@
+# CADLift Material Library (Phase 6.4)
+# Generated MTL file for Wavefront OBJ
+
+newmtl concrete
+# Concrete
+Ka 0.700 0.700 0.700
+Kd 0.700 0.700 0.700
+Ks 0.200 0.200 0.200
+Ns 40.0
+illum 2
