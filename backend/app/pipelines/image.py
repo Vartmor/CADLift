@@ -123,78 +123,137 @@ async def run(job: Job, session: AsyncSession) -> None:
         else:
             logger.warning("TripoSG path requested but service unavailable; continuing to other pipelines")
 
-    # Phase 6: Try TripoSR image-to-3D when enabled
+    # Phase 6: Try TripoSR image-to-3D when enabled (same approach as prompt.py)
     if bool(params.get("use_triposr", True)):
-        image_bytes = input_path.read_bytes()
-        ai_params = dict(params)
-        ai_params["image_bytes"] = image_bytes
-
-        ai_result = await run_ai_pipeline(
-            params.get("prompt", ""),
-            ai_params,
-            source_type="image",
-        )
-
-        ai_metadata = ai_result.get("metadata") or {}
-        outputs = ai_result.get("outputs") or {}
-
-        if ai_result.get("error") is None and outputs:
-            saved_files: dict[str, FileModel] = {}
-            for fmt, data in outputs.items():
-                if not data:
-                    continue
-                role = "output" if fmt in {"glb", "dxf", "obj"} else "output_step"
-                filename = f"image_model.{fmt}"
-                storage_key, size = storage_service.save_bytes(
-                    data,
-                    role=role,
-                    job_id=job.id,
-                    filename=filename,
-                )
-                file_rec = FileModel(
-                    user_id=job.user_id,
-                    job_id=job.id,
-                    role=role,
-                    storage_key=storage_key,
-                    original_name=filename,
-                    mime_type=f"application/{fmt}",
-                    size_bytes=size,
-                )
-                session.add(file_rec)
-                await session.flush()
-                saved_files[fmt] = file_rec
-
-            primary = (
-                saved_files.get("glb")
-                or saved_files.get("dxf")
-                or saved_files.get("step")
-                or saved_files.get("obj")
-            )
-            if primary:
-                job.output_file_id = primary.id
-
-            merged_params = dict(params)
-            merged_params["ai_metadata"] = ai_metadata
-            merged_params["quality_metrics"] = ai_metadata.get("quality_metrics")
-            if "glb" in saved_files:
-                merged_params["glb_file_id"] = saved_files["glb"].id
-            if "step" in saved_files:
-                merged_params["step_file_id"] = saved_files["step"].id
-            if "dxf" in saved_files:
-                merged_params["dxf_file_id"] = saved_files["dxf"].id
-            if "obj" in saved_files:
-                merged_params["obj_file_id"] = saved_files["obj"].id
-
-            job.params = merged_params
-            job.status = "completed"
-            job.error_code = None
-            job.error_message = None
-            return
-
-        logger.warning(
-            "TripoSR image-to-3D unavailable, falling back to parametric pipeline",
-            extra={"status": ai_metadata.get("status") if ai_metadata else None, "error": ai_result.get("error")},
-        )
+        from app.services.triposr import get_triposr_service, TripoSRError
+        from app.services.mesh_converter import get_mesh_converter, MeshConversionError
+        from app.services.mesh_processor import process_mesh
+        import gc
+        import inspect
+        
+        triposr = get_triposr_service()
+        
+        if triposr.is_available():
+            try:
+                # CRITICAL: Free GPU memory before loading TripoSR
+                # This prevents the crash that happens when other models are loaded
+                try:
+                    import torch
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    logger.info("Cleared GPU cache before TripoSR")
+                except Exception:
+                    pass
+                
+                # Also unload Stable Diffusion if it was loaded from a previous job
+                try:
+                    from app.services.stable_diffusion import get_stable_diffusion_service
+                    sd_service = get_stable_diffusion_service()
+                    if sd_service._pipe is not None:
+                        logger.info("Unloading Stable Diffusion to free GPU memory")
+                        sd_service.unload()
+                except Exception:
+                    pass
+                
+                image_bytes = input_path.read_bytes()
+                target_faces = int(max(20000, min(120000, 20000 + float(params.get("detail", 70)) * 800)))
+                
+                logger.info("Starting TripoSR image-to-3D generation")
+                obj_bytes = triposr.generate_from_image(image_bytes)
+                logger.info("TripoSR generation complete, converting formats")
+                
+                converter = get_mesh_converter()
+                glb_bytes = converter.convert(obj_bytes, "obj", "glb")
+                
+                # Process mesh for quality
+                quality = None
+                try:
+                    pm_result = process_mesh(glb_bytes, file_type="glb", target_faces=target_faces, min_quality=7.0)
+                    if inspect.isawaitable(pm_result):
+                        processed_glb, quality = await pm_result
+                    else:
+                        processed_glb, quality = pm_result
+                except Exception as exc:
+                    logger.warning(f"Mesh processing skipped: {exc}")
+                    processed_glb = glb_bytes
+                
+                # Generate all output formats
+                outputs = {
+                    "glb": processed_glb,
+                    "obj": converter.convert(processed_glb, "glb", "obj"),
+                }
+                try:
+                    outputs["dxf"] = converter.convert(processed_glb, "glb", "dxf")
+                except MeshConversionError:
+                    outputs["dxf"] = b""
+                try:
+                    outputs["step"] = converter.convert(processed_glb, "glb", "step")
+                except MeshConversionError:
+                    outputs["step"] = b""
+                
+                # Save output files
+                saved_files: dict[str, FileModel] = {}
+                for fmt, data in outputs.items():
+                    if not data:
+                        continue
+                    role = "output" if fmt in {"glb", "dxf", "obj"} else "output_step"
+                    filename = f"image_model.{fmt}"
+                    storage_key, size = storage_service.save_bytes(
+                        data,
+                        role=role,
+                        job_id=job.id,
+                        filename=filename,
+                    )
+                    file_rec = FileModel(
+                        user_id=job.user_id,
+                        job_id=job.id,
+                        role=role,
+                        storage_key=storage_key,
+                        original_name=filename,
+                        mime_type=f"application/{fmt}",
+                        size_bytes=size,
+                    )
+                    session.add(file_rec)
+                    await session.flush()
+                    saved_files[fmt] = file_rec
+                
+                primary = saved_files.get("glb") or saved_files.get("dxf") or saved_files.get("step") or saved_files.get("obj")
+                if primary:
+                    job.output_file_id = primary.id
+                
+                merged_params = dict(params)
+                merged_params["ai_metadata"] = {
+                    "pipeline": "triposr_direct",
+                    "provider": "triposr_local",
+                    "quality_metrics": {
+                        "processing_quality_score": getattr(quality, "overall_score", None) if quality else None,
+                        "faces": getattr(quality, "face_count", None) if quality else None,
+                        "vertices": getattr(quality, "vertex_count", None) if quality else None,
+                        "watertight": getattr(quality, "is_watertight", None) if quality else None,
+                    },
+                }
+                if "glb" in saved_files:
+                    merged_params["glb_file_id"] = saved_files["glb"].id
+                if "step" in saved_files:
+                    merged_params["step_file_id"] = saved_files["step"].id
+                if "dxf" in saved_files:
+                    merged_params["dxf_file_id"] = saved_files["dxf"].id
+                if "obj" in saved_files:
+                    merged_params["obj_file_id"] = saved_files["obj"].id
+                
+                job.params = merged_params
+                job.status = "completed"
+                job.error_code = None
+                job.error_message = None
+                logger.info("Image-to-3D completed successfully")
+                return
+                
+            except (TripoSRError, MeshConversionError) as exc:
+                logger.warning("TripoSR image-to-3D failed, falling back to parametric", extra={"error": str(exc)})
+            except Exception as exc:
+                logger.warning("TripoSR unexpected error, falling back to parametric", extra={"error": str(exc)})
+        else:
+            logger.warning("TripoSR not available, falling back to parametric pipeline")
 
     model = await _generate_model(input_path, job)
 

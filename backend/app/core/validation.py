@@ -209,8 +209,8 @@ def validate_job_parameters(job_type: str, params: dict) -> tuple[bool, str | No
         tuple: (is_valid, error_message)
     """
     try:
-        # Validate extrude_height
-        if "extrude_height" in params:
+        # Validate extrude_height (only required for CAD jobs, not for TripoSR-based image/prompt)
+        if "extrude_height" in params and job_type == "cad":
             height = params["extrude_height"]
             if not isinstance(height, (int, float)):
                 return False, "extrude_height must be a number"

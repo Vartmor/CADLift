@@ -134,6 +134,21 @@ class TripoSRService:
         
         if _TSR is None:
             raise TripoSRError("TripoSR TSR class not available")
+        
+        # CRITICAL: Aggressive GPU cleanup before loading model
+        # This prevents crashes when other models (SD) were recently using GPU
+        if _torch is not None and _torch.cuda.is_available():
+            try:
+                logger.info("Clearing GPU memory before loading TripoSR...")
+                _torch.cuda.empty_cache()
+                _torch.cuda.synchronize()  # Wait for any pending ops
+                gc.collect()
+                
+                # Force a lower resolution for safety
+                self.mc_resolution = min(self.mc_resolution, 128)
+                logger.info(f"Using safe resolution: {self.mc_resolution}")
+            except Exception as e:
+                logger.warning(f"GPU cleanup failed: {e}")
             
         try:
             logger.info("Loading TripoSR model (this may take a minute on first run)...")
@@ -148,8 +163,8 @@ class TripoSRService:
             # Reduce memory for small GPUs
             if hasattr(self.model, "renderer"):
                 try:
-                    self.model.renderer.set_chunk_size(1024)
-                    logger.info("Set renderer chunk size to 1024 for memory efficiency")
+                    self.model.renderer.set_chunk_size(512)  # Even smaller chunks for safety
+                    logger.info("Set renderer chunk size to 512 for memory efficiency")
                 except Exception:
                     pass
                     

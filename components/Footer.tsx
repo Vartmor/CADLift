@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
   const footerLinks = {
     product: [
       { label: 'Dashboard', href: '/dashboard' },
-      { label: 'DXF to 3D', href: '/dashboard' },
+      { label: 'DWG/DXF to 3D', href: '/dashboard' },
       { label: 'Image to 3D', href: '/dashboard' },
       { label: 'Prompt to 3D', href: '/dashboard' },
     ],

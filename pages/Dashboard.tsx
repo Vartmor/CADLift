@@ -444,8 +444,8 @@ const Dashboard: React.FC = () => {
                   <div className={`p-2 rounded-xl ${activeTab === 'dxf' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>
                     <FileText size={18} />
                   </div>
-                  <span className="hidden sm:inline">DXF to 3D</span>
-                  <span className="sm:hidden">DXF</span>
+                  <span className="hidden sm:inline">DWG/DXF to 3D</span>
+                  <span className="sm:hidden">CAD</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('image'); setCurrentJobId(null); }}

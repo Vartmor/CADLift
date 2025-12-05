@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
 from pathlib import Path
 
 import ezdxf
@@ -13,6 +14,7 @@ from app.services.storage import storage_service
 from app.pipelines.geometry import build_artifacts, build_artifacts_multistory
 from app.core.errors import CADLiftError, ErrorCode
 from app.services.co2tools_adapter import get_co2tools_service, Co2ToolsError
+from app.services.dwg_converter import get_dwg_converter_service, DwgConverterError
 
 
 async def run(job: Job, session: AsyncSession) -> None:
@@ -24,8 +26,34 @@ async def run(job: Job, session: AsyncSession) -> None:
         raise CADLiftError(ErrorCode.SYS_FILE_NOT_FOUND, details=f"File {job.input_file_id} not found in database")
 
     input_path = storage_service.resolve_path(input_file.storage_key)
-    model = _generate_model(input_path, job)
     logger = logging.getLogger("cadlift.pipeline.cad")
+    
+    # Auto-convert DWG to DXF if needed
+    original_filename = input_file.original_name or ""
+    if original_filename.lower().endswith(".dwg"):
+        logger.info("DWG file detected, converting to DXF", extra={"input_filename": original_filename})
+        dwg_converter = get_dwg_converter_service()
+        
+        if not dwg_converter.enabled:
+            raise CADLiftError(
+                ErrorCode.CAD_READ_ERROR, 
+                details="DWG files require ODA File Converter which is not available"
+            )
+        
+        try:
+            dwg_bytes = input_path.read_bytes()
+            dxf_bytes = dwg_converter.convert_dwg_to_dxf(dwg_bytes)
+            
+            # Save converted DXF to temp file for processing
+            with tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
+                tmp.write(dxf_bytes)
+                input_path = Path(tmp.name)
+            
+            logger.info("DWG converted to DXF successfully", extra={"size": len(dxf_bytes)})
+        except DwgConverterError as exc:
+            raise CADLiftError(ErrorCode.CAD_READ_ERROR, details=str(exc)) from exc
+    
+    model = _generate_model(input_path, job)
     logger.info("Processing CAD job", extra={"job_id": job.id, "input": str(input_path)})
 
     # Persist JSON model for introspection/metadata.
@@ -110,40 +138,79 @@ async def run(job: Job, session: AsyncSession) -> None:
     merged_params = job.params or {}
     merged_params["step_file_id"] = step_file.id
 
-    # Optional: generate STL using co2tools (uses Footprint layer from our DXF)
-    if bool(params.get("use_co2tools", False)):
+    # Generate 3D mesh using co2tools (enabled by default for DXF→3D conversion)
+    use_co2tools = bool(params.get("use_co2tools", True))  # Default: enabled
+    if use_co2tools:
         co2 = get_co2tools_service()
         if co2.enabled:
             try:
-                stl_bytes = co2.dxf_bytes_to_stl(
-                    dxf_bytes,
+                # Read original DXF bytes for co2tools processing
+                original_dxf_bytes = input_path.read_bytes()
+                
+                # Generate GLB (primary 3D output for frontend viewer)
+                glb_bytes = co2.dxf_bytes_to_glb(
+                    original_dxf_bytes,
                     extrude_height=float(model.get("extrude_height", 3000.0)),
-                    layer_cut="Footprint",
+                    layer_cut=None,  # Auto-detect layer
+                )
+                glb_storage_key, glb_size = storage_service.save_bytes(
+                    glb_bytes,
+                    role="output",
+                    job_id=job.id,
+                    filename="model.glb",
+                )
+                glb_file = FileModel(
+                    user_id=job.user_id,
+                    job_id=job.id,
+                    role="output",
+                    storage_key=glb_storage_key,
+                    original_name="model.glb",
+                    mime_type="model/gltf-binary",
+                    size_bytes=glb_size,
+                )
+                session.add(glb_file)
+                await session.flush()
+                merged_params["glb_file_id"] = glb_file.id
+                
+                # Also generate STL as secondary output
+                stl_bytes = co2.dxf_bytes_to_stl(
+                    original_dxf_bytes,
+                    extrude_height=float(model.get("extrude_height", 3000.0)),
+                    layer_cut=None,  # Auto-detect layer
                 )
                 stl_storage_key, stl_size = storage_service.save_bytes(
                     stl_bytes,
                     role="output",
                     job_id=job.id,
-                    filename="model_co2tools.stl",
+                    filename="model.stl",
                 )
                 stl_file = FileModel(
                     user_id=job.user_id,
                     job_id=job.id,
                     role="output",
                     storage_key=stl_storage_key,
-                    original_name="model_co2tools.stl",
+                    original_name="model.stl",
                     mime_type="application/sla",
                     size_bytes=stl_size,
                 )
                 session.add(stl_file)
                 await session.flush()
-                merged_params["co2tools_stl_file_id"] = stl_file.id
+                merged_params["stl_file_id"] = stl_file.id
+                
+                # Set GLB as the primary output for 3D viewing
+                job.output_file_id = glb_file.id
+                logger.info(f"co2tools generated GLB ({glb_size} bytes) and STL ({stl_size} bytes)")
+                
             except Co2ToolsError as exc:
-                logger.warning("co2tools STL generation failed", extra={"error": str(exc)})
+                logger.warning("co2tools 3D generation failed, falling back to DXF output", extra={"error": str(exc)})
+                # Fall back to DXF as output
+                job.output_file_id = dxf_file.id
         else:
-            logger.info("co2tools not available; skipping STL generation")
+            logger.info("co2tools not available; using DXF as primary output")
+            job.output_file_id = dxf_file.id
+    else:
+        job.output_file_id = dxf_file.id
 
-    job.output_file_id = dxf_file.id
     job.params = merged_params
     job.status = "completed"
     job.error_code = None

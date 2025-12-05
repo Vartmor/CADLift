@@ -67,25 +67,60 @@ async def create_job_endpoint(
     await session.flush()
 
     max_bytes = int(settings.max_upload_mb * 1024 * 1024)
-    allowed_mimes = {"application/dxf", "image/png", "image/jpeg", "image/jpg"}
+    # Allowed MIME types - browsers may report various types for DXF/DWG files
+    allowed_mimes = {
+        "application/dxf", 
+        "image/vnd.dxf",
+        "image/x-dxf",
+        "application/x-dxf",
+        "application/x-dwg",  # DWG files
+        "image/vnd.dwg",
+        "image/x-dwg",
+        "application/acad",
+        "application/autocad_dwg",
+        "text/plain",  # Some browsers report DXF as text
+        "application/octet-stream",  # Generic binary
+        "image/png", 
+        "image/jpeg", 
+        "image/jpg"
+    }
+    # Also allow by file extension for DXF/DWG
+    cad_extensions = {".dxf", ".dwg"}
+    image_extensions = {".png", ".jpg", ".jpeg"}
 
     if upload:
-        if upload.content_type not in allowed_mimes:
+        filename_lower = (upload.filename or "").lower()
+        file_ext = filename_lower[filename_lower.rfind("."):] if "." in filename_lower else ""
+        
+        # Check if MIME type is allowed OR file extension is allowed
+        mime_allowed = upload.content_type in allowed_mimes
+        ext_allowed = file_ext in cad_extensions or file_ext in image_extensions
+        
+        if not mime_allowed and not ext_allowed:
+            logger.warning("unsupported_file_type", content_type=upload.content_type, filename=upload.filename)
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {upload.content_type}")
 
         # Phase 3.4: Validate uploaded file BEFORE saving
         file_data = await upload.read()
         await upload.seek(0)  # Reset for later reading
 
-        # Validate based on file type
-        if upload.content_type == "application/dxf" or (upload.filename and upload.filename.endswith(".dxf")):
+        # Validate based on file extension (more reliable than MIME type)
+        is_dxf = file_ext == ".dxf"
+        is_dwg = file_ext == ".dwg"
+        is_image = file_ext in image_extensions
+        
+        if is_dxf:
             is_valid, error_msg = validate_dxf_file(file_data, upload.filename or "upload.dxf")
             if not is_valid:
                 logger.warning("dxf_validation_failed", filename=upload.filename, error=error_msg)
                 raise HTTPException(status_code=400, detail=f"Invalid DXF file: {error_msg}")
             logger.info("dxf_validation_passed", filename=upload.filename)
+        
+        elif is_dwg:
+            # DWG files are validated during conversion in the pipeline
+            logger.info("dwg_file_accepted", filename=upload.filename)
 
-        elif upload.content_type in {"image/png", "image/jpeg", "image/jpg"}:
+        elif is_image:
             is_valid, error_msg = validate_image_file(file_data, upload.filename or "upload.png")
             if not is_valid:
                 logger.warning("image_validation_failed", filename=upload.filename, error=error_msg)

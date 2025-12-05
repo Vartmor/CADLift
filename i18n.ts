@@ -237,7 +237,7 @@ const resources = {
         description:
           'CADLift transforms your 2D technical drawings into 3D models instantly. Using advanced geometry processing, we bridge the gap between drafting and modeling.',
         features_title: 'Key Features',
-        feature_1: 'Instant DXF to 3D conversion',
+        feature_1: 'Instant DWG/DXF to 3D conversion',
         feature_2: 'Intelligent closed-loop detection',
         feature_3: 'Export to FBX/OBJ for AutoCAD & Blender',
         disclaimer: 'This is a demo MVP version.'

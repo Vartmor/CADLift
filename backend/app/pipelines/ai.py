@@ -79,6 +79,16 @@ async def run_ai_pipeline(
                     "fallback_used": False,
                 }
 
+            # Free GPU memory before loading TripoSR (SD may be loaded from a previous prompt job)
+            try:
+                from app.services.stable_diffusion import get_stable_diffusion_service
+                sd_service = get_stable_diffusion_service()
+                if sd_service._pipe is not None:
+                    logger.info("Unloading Stable Diffusion to free GPU memory for TripoSR")
+                    sd_service.unload()
+            except Exception as e:
+                logger.debug(f"SD unload skipped: {e}")
+
             obj_bytes = triposr.generate_from_image(image_bytes)
             converter = get_mesh_converter()
 
