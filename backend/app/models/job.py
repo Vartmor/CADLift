@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import String, DateTime, ForeignKey, JSON, func
+from sqlalchemy import String, DateTime, ForeignKey, JSON, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -17,6 +17,7 @@ class Job(Base):
     job_type: Mapped[str] = mapped_column(String(32))
     mode: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(32), default="queued")
+    progress: Mapped[int] = mapped_column(Integer, default=0)  # Progress percentage 0-100
     params: Mapped[dict | None] = mapped_column(JSON, default=dict)
     error_code: Mapped[str | None] = mapped_column(String(64))
     error_message: Mapped[str | None] = mapped_column(String(255))
@@ -31,3 +32,4 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+

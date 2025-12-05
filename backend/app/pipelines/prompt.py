@@ -46,6 +46,13 @@ NEGATIVE_PROMPT = "blurry, lowres, noisy, text, watermark, logo, multiple object
 logger = logging.getLogger("cadlift.pipeline.prompt")
 
 
+async def _update_progress(job: Job, session: AsyncSession, progress: int) -> None:
+    """Update job progress percentage in the database."""
+    job.progress = min(100, max(0, progress))
+    await session.commit()
+
+
+
 async def run(job: Job, session: AsyncSession) -> None:
     params = job.params or {}
     prompt_text = (params.get("prompt") or "").strip()
@@ -53,6 +60,7 @@ async def run(job: Job, session: AsyncSession) -> None:
         raise CADLiftError(ErrorCode.PROMPT_EMPTY, details="Prompt parameter is missing or empty")
 
     logger.info("Processing prompt job", extra={"job_id": job.id})
+    await _update_progress(job, session, 5)  # Starting
 
     routing = get_routing_service().route(prompt_text)
     logger.info(
@@ -72,21 +80,43 @@ async def run(job: Job, session: AsyncSession) -> None:
         image_bytes = None
         image_provider = None
 
-        if sd_service.is_available() and triposr.enabled:
+        # Check if AI pipeline is available
+        ai_available = (sd_service.is_available() or img_service.is_available()) and triposr.is_available()
+        
+        if not ai_available:
+            logger.warning(
+                "AI pipeline not fully available",
+                extra={
+                    "sd_available": sd_service.is_available(),
+                    "openai_available": img_service.is_available(),
+                    "triposr_available": triposr.is_available(),
+                }
+            )
+
+        if sd_service.is_available() and triposr.is_available():
             try:
                 logger.info("StableDiffusion->TripoSR path selected", extra={"job_id": job.id})
+                await _update_progress(job, session, 10)  # Starting image generation
                 image_bytes = sd_service.generate_image(enriched_prompt, negative_prompt=NEGATIVE_PROMPT)
                 image_provider = "stable_diffusion"
+                await _update_progress(job, session, 40)  # Image generation complete
+                
+                # Free SD memory before loading TripoSR (important for low-VRAM systems)
+                logger.info("Unloading Stable Diffusion to free memory for TripoSR")
+                sd_service.unload()
+                
             except StableDiffusionError as exc:
                 logger.warning("Stable Diffusion image generation failed; falling back to OpenAI", extra={"error": str(exc)})
             except Exception as exc:
                 logger.warning("Stable Diffusion unexpected error; falling back to OpenAI", extra={"error": str(exc)})
 
-        if image_bytes is None and img_service.is_available() and triposr.enabled:
+        if image_bytes is None and img_service.is_available() and triposr.is_available():
             try:
                 logger.info("OpenAI->TripoSR fallback path selected", extra={"job_id": job.id})
+                await _update_progress(job, session, 10)  # Starting image generation
                 image_bytes = img_service.generate_image(enriched_prompt)
                 image_provider = "openai"
+                await _update_progress(job, session, 40)  # Image generation complete
             except OpenAIImageError as exc:
                 logger.warning("OpenAI image generation failed; falling back to parametric", extra={"error": str(exc)})
                 use_ai = False
@@ -94,7 +124,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                 logger.warning("OpenAI image unexpected error; falling back to parametric", extra={"error": str(exc)})
                 use_ai = False
 
-        if image_bytes is not None and triposr.enabled: 
+        if image_bytes is not None and triposr.is_available(): 
             try: 
                 # Persist the generated reference image for auditing/debug 
                 ref_file = None 
@@ -120,7 +150,9 @@ async def run(job: Job, session: AsyncSession) -> None:
                     logger.warning("Failed to store reference image", extra={"error": str(exc)})
 
                 converter = get_mesh_converter()
+                await _update_progress(job, session, 50)  # Starting 3D mesh generation
                 obj_bytes = triposr.generate_from_image(image_bytes)
+                await _update_progress(job, session, 70)  # 3D mesh complete
                 glb_bytes = converter.convert(obj_bytes, "obj", "glb")
                 quality = None
                 try:
@@ -133,6 +165,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                     logger.warning(f"Mesh processing skipped: {exc}")
                     processed_glb = glb_bytes
 
+                await _update_progress(job, session, 85)  # Starting file conversions
                 outputs = {
                     "glb": processed_glb,
                     "obj": converter.convert(processed_glb, "glb", "obj"),
@@ -180,6 +213,7 @@ async def run(job: Job, session: AsyncSession) -> None:
 
                 job.output_file_id = primary.id
                 job.status = "completed"
+                job.progress = 100  # Complete
                 job.error_code = None
                 job.error_message = None
 

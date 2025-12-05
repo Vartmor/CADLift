@@ -76,8 +76,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app,
-        requests_per_minute: int = 2000,  # further relaxed to avoid 429 during local polling
-        requests_per_hour: int = 50000,
+        requests_per_minute: int = 10000,  # Very high for development with polling
+        requests_per_hour: int = 500000,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute

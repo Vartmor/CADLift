@@ -199,13 +199,14 @@ const adaptApiJob = (job: ApiJobEntity): JobRecord => {
     ? `${API_BASE_URL}/api/v1/files/${glb_id}`
     : undefined;
 
-  const rawProgress = (job as Record<string, unknown>).progress;
-  const progress = typeof rawProgress === 'number'
+  const rawProgress = (job as unknown as { progress?: number }).progress;
+  // Use actual progress from API, fallback to status-based estimation if not available
+  const progress = typeof rawProgress === 'number' && rawProgress > 0
     ? rawProgress
     : status === JobStatus.COMPLETED
       ? 100
       : status === JobStatus.PROCESSING
-        ? 50
+        ? 5  // Just started processing (old jobs without progress)
         : 0;
 
   return {

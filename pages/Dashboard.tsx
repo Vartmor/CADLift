@@ -6,7 +6,6 @@ import { UploadFormData, ConversionMode, JobStatus as JobState } from '../types'
 import { jobService, JobRecord } from '../services/jobService';
 import { useJobHistory } from '../hooks/useJobHistory';
 import QuickStart from '../components/QuickStart';
-import Modal from '../components/Modal';
 import ImageWorkflowForm from '../components/ImageWorkflowForm';
 import PromptWorkflowForm from '../components/PromptWorkflowForm';
 import OnboardingTips from '../components/OnboardingTips';
@@ -26,7 +25,10 @@ import {
   Sparkles,
   CircleDot,
   ClipboardList,
+  FileText,
 } from 'lucide-react';
+
+type WorkflowTab = 'dxf' | 'image' | 'prompt';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -36,8 +38,7 @@ const Dashboard: React.FC = () => {
   const uploadSectionRef = useRef<HTMLDivElement>(null);
   const jobStatusRef = useRef<HTMLDivElement>(null);
   const { jobs: jobHistory } = useJobHistory();
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<WorkflowTab>('prompt');
   const [submitProgress, setSubmitProgress] = useState<number | null>(null);
   const [quickStartOpen, setQuickStartOpen] = useState(false);
   const [showTips, setShowTips] = useState(() => {
@@ -69,11 +70,13 @@ const Dashboard: React.FC = () => {
       }
       if (event.ctrlKey && key === 'i') {
         event.preventDefault();
-        setShowImageModal(true);
+        setActiveTab('image');
+        handleLaunchWorkspace();
       }
       if (event.ctrlKey && key === 'p') {
         event.preventDefault();
-        setShowPromptModal(true);
+        setActiveTab('prompt');
+        handleLaunchWorkspace();
       }
     };
     window.addEventListener('keydown', handler);
@@ -91,13 +94,13 @@ const Dashboard: React.FC = () => {
     const completedJobs = jobHistory.filter((job) => job.status === JobState.COMPLETED);
     const avgSeconds = completedJobs.length
       ? Math.max(
-          1,
-          Math.round(
-            completedJobs.reduce((acc, job) => acc + ((job.completedAt ?? job.updatedAt) - job.createdAt), 0) /
-              completedJobs.length /
-              1000
-          )
+        1,
+        Math.round(
+          completedJobs.reduce((acc, job) => acc + ((job.completedAt ?? job.updatedAt) - job.createdAt), 0) /
+          completedJobs.length /
+          1000
         )
+      )
       : 12;
     const detectionRate = jobHistory.length
       ? Math.min(99, Math.round((completedJobs.length / jobHistory.length) * 100))
@@ -139,7 +142,7 @@ const Dashboard: React.FC = () => {
       icon: <ImageIcon className="w-8 h-8" />,
       gradient: 'from-purple-500 to-pink-500',
       cta: t('dashboard.modes.image.cta'),
-      action: () => setShowImageModal(true),
+      action: () => { setActiveTab('image'); handleLaunchWorkspace(); },
       comingSoon: false,
       extra: (
         <div className="flex flex-col gap-2">
@@ -162,7 +165,7 @@ const Dashboard: React.FC = () => {
       icon: <MessageSquare className="w-8 h-8" />,
       gradient: 'from-amber-500 to-orange-500',
       cta: t('dashboard.modes.prompt.cta'),
-      action: () => setShowPromptModal(true),
+      action: () => { setActiveTab('prompt'); handleLaunchWorkspace(); },
       comingSoon: false,
       extra: (
         <div className="space-y-2">
@@ -284,8 +287,6 @@ const Dashboard: React.FC = () => {
     const job = await jobService.createJob(formData);
     setCurrentJobId(job.job_id);
     setPresetMode(null);
-    setShowImageModal(false);
-    setShowPromptModal(false);
     setQuickStartOpen(false);
     setSubmitProgress(0);
     if (jobStatusRef.current) {
@@ -298,17 +299,64 @@ const Dashboard: React.FC = () => {
   };
 
   const renderActions = (job: JobRecord) => {
-    if (job.status === JobState.COMPLETED && job.download_url) {
+    if (job.status === JobState.COMPLETED) {
+      const glbUrl = job.glb_download_url;
+      const dxfUrl = job.dxf_download_url || job.download_url;
+      const stepUrl = job.step_download_url;
+
       return (
-        <a
-          href={job.download_url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-white hover:text-primary-500 transition-colors"
-        >
-          <Download size={16} />
-          {t('dashboard.recent.action.download')}
-        </a>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* View 3D button */}
+          {glbUrl && (
+            <button
+              onClick={() => {
+                setCurrentJobId(job.job_id);
+                if (jobStatusRef.current) {
+                  jobStatusRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+              title="View in 3D"
+            >
+              <Eye size={14} />
+              3D
+            </button>
+          )}
+          {/* Download buttons */}
+          {glbUrl && (
+            <a
+              href={glbUrl}
+              download
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+              title="Download GLB"
+            >
+              <Download size={14} />
+              GLB
+            </a>
+          )}
+          {dxfUrl && (
+            <a
+              href={dxfUrl}
+              download
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              title="Download DXF"
+            >
+              <Download size={14} />
+              DXF
+            </a>
+          )}
+          {stepUrl && (
+            <a
+              href={stepUrl}
+              download
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+              title="Download STEP"
+            >
+              <Download size={14} />
+              STEP
+            </a>
+          )}
+        </div>
       );
     }
     if (job.status === JobState.FAILED) {
@@ -322,14 +370,18 @@ const Dashboard: React.FC = () => {
         </button>
       );
     }
+    // Processing/Pending - show progress
+    const progress = (job as JobRecord & { progress?: number }).progress ?? 0;
     return (
-      <button
-        type="button"
-        className="flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-primary-500 transition-colors"
-      >
-        <Eye size={16} />
-        {t('dashboard.recent.action.view')}
-      </button>
+      <div className="flex items-center gap-2">
+        <div className="w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary-500 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <span className="text-xs font-semibold text-slate-500">{progress}%</span>
+      </div>
     );
   };
 
@@ -372,128 +424,91 @@ const Dashboard: React.FC = () => {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start" ref={uploadSectionRef}>
         <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 backdrop-blur p-6 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                <Terminal size={18} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-500">{t('dashboard.workspace.title')}</p>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{t('dashboard.workspace.subtitle')}</h2>
-                </div>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full font-mono">
-                <Sparkles size={14} />
-                <span>{t('dashboard.workspace.statusReady')}</span>
+          {/* Section Header */}
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-500">{t('dashboard.workspace.title')}</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">Choose Your Workflow</h2>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/50 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-200/30 dark:shadow-black/30 overflow-hidden">
+            {/* Creative Tab Navigation */}
+            <div className="p-2 bg-slate-100 dark:bg-slate-800">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setActiveTab('dxf'); setCurrentJobId(null); }}
+                  className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'dxf'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-[1.02]'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <div className={`p-2 rounded-xl ${activeTab === 'dxf' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>
+                    <FileText size={18} />
+                  </div>
+                  <span className="hidden sm:inline">DXF to 3D</span>
+                  <span className="sm:hidden">DXF</span>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('image'); setCurrentJobId(null); }}
+                  className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'image'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-[1.02]'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <div className={`p-2 rounded-xl ${activeTab === 'image' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>
+                    <ImageIcon size={18} />
+                  </div>
+                  <span className="hidden sm:inline">Image to 3D</span>
+                  <span className="sm:hidden">Image</span>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('prompt'); setCurrentJobId(null); }}
+                  className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'prompt'
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-[1.02]'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <div className={`p-2 rounded-xl ${activeTab === 'prompt' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>
+                    <Sparkles size={18} />
+                  </div>
+                  <span className="hidden sm:inline">Prompt to 3D</span>
+                  <span className="sm:hidden">AI</span>
+                </button>
               </div>
             </div>
-            <div className="min-h-[520px]">
-              {!currentJobId ? (
-                <div className="w-full animate-fade-in-up">
-                  <UploadForm onSubmit={handleJobSubmit} presetMode={presetMode} presetModeSignal={presetModeSignal} />
-                </div>
-              ) : (
+
+            {/* Solid accent line under active tab */}
+            <div className={`h-1 transition-all duration-500 ${activeTab === 'dxf' ? 'bg-purple-600' :
+              activeTab === 'image' ? 'bg-blue-600' :
+                'bg-orange-500'
+              }`} />
+
+            {/* Content Area */}
+            <div className="p-6 min-h-[520px]">
+              {currentJobId ? (
                 <div className="w-full" ref={jobStatusRef}>
                   <JobStatusComponent jobId={currentJobId} onReset={resetJob} />
                 </div>
+              ) : (
+                <div className="w-full animate-fade-in-up">
+                  {activeTab === 'dxf' && (
+                    <UploadForm onSubmit={handleJobSubmit} presetMode={presetMode} presetModeSignal={presetModeSignal} />
+                  )}
+                  {activeTab === 'image' && (
+                    <ImageWorkflowForm onCreate={handleJobSubmit} />
+                  )}
+                  {activeTab === 'prompt' && (
+                    <PromptWorkflowForm onCreate={handleJobSubmit} />
+                  )}
+                </div>
               )}
             </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 backdrop-blur p-6 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-500">{t('dashboard.recent.title')}</p>
-                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">{t('dashboard.recent.subtitle')}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleLaunchWorkspace()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold shadow hover:-translate-y-0.5 transition-transform"
-              >
-                {t('dashboard.hero.primaryCta')}
-                <ArrowRight size={16} />
-              </button>
-            </div>
-            {recentJobs.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">{t('dashboard.recent.empty')}</p>
-            ) : (
-              <div className="space-y-3">
-                {recentJobs.map((job) => (
-                  <div
-                    key={job.job_id}
-                    className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80"
-                  >
-                    <div className="min-w-[200px]">
-                      <p className="font-semibold text-slate-900 dark:text-white">{jobIntentLabel(job)}</p>
-                      <p className="text-xs text-slate-500">{jobModeLabel(job)}</p>
-                      <p className="text-[11px] text-slate-400">{job.job_id}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${statusStyles[job.status].bg} ${statusStyles[job.status].text}`}>
-                        <span className={`w-2 h-2 rounded-full ${statusStyles[job.status].dot} animate-pulse`} />
-                        {statusLabels[job.status]}
-                      </div>
-                    </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">{formatTimestamp(job.createdAt)}</div>
-                    <div className="flex-shrink-0">
-                      {renderActions(job)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
         <div className="lg:col-span-1 space-y-4">
           {showTips && <OnboardingTips onDismiss={dismissTips} />}
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-500">{t('dashboard.quickStart.title')}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.quickStart.description')}</p>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <button
-                type="button"
-                onClick={() => handleLaunchWorkspace()}
-                className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold hover:-translate-y-0.5 transition-transform"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Layers3 size={16} />
-                  {t('dashboard.quickStart.actions.uploadCad')}
-                </span>
-                <ArrowRight size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowImageModal(true)}
-                className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 font-semibold hover:-translate-y-0.5 transition-transform"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <ImageIcon size={16} />
-                  {t('dashboard.quickStart.actions.uploadImage')}
-                </span>
-                <ArrowRight size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPromptModal(true)}
-                className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-200 font-semibold hover:-translate-y-0.5 transition-transform"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <MessageSquare size={16} />
-                  {t('dashboard.quickStart.actions.startPrompt')}
-                </span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
-              Shortcuts: Ctrl+U (workspace), Ctrl+L (mechanical), Ctrl+I (image), Ctrl+P (prompt)
-            </p>
-          </div>
+
 
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 shadow-md space-y-3">
             <div className="flex items-center justify-between">
@@ -601,42 +616,22 @@ const Dashboard: React.FC = () => {
       </section>
 
       <QuickStart
-        onCad={() => handleLaunchWorkspace()}
+        onCad={() => { setActiveTab('dxf'); handleLaunchWorkspace(); }}
         onImage={() => {
-          setShowImageModal(true);
+          setActiveTab('image');
+          handleLaunchWorkspace();
           setQuickStartOpen(false);
         }}
         onPrompt={() => {
-          setShowPromptModal(true);
+          setActiveTab('prompt');
+          handleLaunchWorkspace();
           setQuickStartOpen(false);
         }}
         isOpen={quickStartOpen}
         toggle={() => setQuickStartOpen((prev) => !prev)}
       />
 
-      <Modal
-        title={t('dashboard.imageForm.title')}
-        description={t('dashboard.imageForm.description')}
-        isOpen={showImageModal}
-        onClose={() => setShowImageModal(false)}
-      >
-        <ImageWorkflowForm
-          onCreate={handleJobSubmit}
-          onSuccess={() => setShowImageModal(false)}
-        />
-      </Modal>
 
-      <Modal
-        title={t('dashboard.promptForm.title')}
-        description={t('dashboard.promptForm.description')}
-        isOpen={showPromptModal}
-        onClose={() => setShowPromptModal(false)}
-      >
-        <PromptWorkflowForm
-          onCreate={handleJobSubmit}
-          onSuccess={() => setShowPromptModal(false)}
-        />
-      </Modal>
     </div>
   );
 };

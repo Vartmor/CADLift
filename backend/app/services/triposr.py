@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import os
 import sys
+import gc
 import logging
 from pathlib import Path
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Any
 import numpy as np
 from PIL import Image
 
@@ -25,14 +26,24 @@ logger = logging.getLogger("cadlift.services.triposr")
 
 # Check if TripoSR is available (opt-in; avoids hard crashes on missing native deps)
 TRIPOSR_AVAILABLE = False
+_torch = None
+_TSR = None
+_remove_background = None
+_resize_foreground = None
+
 if os.environ.get("TRIPOSR_DISABLE", "0") != "1":
     _triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
     try:
-        import torch
+        import torch as _torch_module
+        _torch = _torch_module
+        
         if _triposr_path.exists():
             sys.path.insert(0, str(_triposr_path))
-            from tsr.system import TSR
-            from tsr.utils import remove_background, resize_foreground
+            from tsr.system import TSR as _TSR_class
+            from tsr.utils import remove_background as _rb, resize_foreground as _rf
+            _TSR = _TSR_class
+            _remove_background = _rb
+            _resize_foreground = _rf
             TRIPOSR_AVAILABLE = True
             logger.info(f"TripoSR module found at {_triposr_path}")
         else:
@@ -48,6 +59,39 @@ class TripoSRError(Exception):
     pass
 
 
+def _get_optimal_resolution() -> int:
+    """Determine optimal marching cubes resolution based on available memory."""
+    if _torch is None:
+        return 128  # Conservative default
+    
+    try:
+        if _torch.cuda.is_available():
+            # Check GPU memory
+            props = _torch.cuda.get_device_properties(0)
+            total_mem = props.total_memory / (1024**3)  # GB
+            
+            if total_mem >= 12:
+                return 256  # High quality for 12GB+ GPUs
+            elif total_mem >= 8:
+                return 192  # Medium-high for 8GB GPUs
+            elif total_mem >= 6:
+                return 160  # Medium for 6GB GPUs
+            else:
+                return 128  # Low for 4GB GPUs
+        else:
+            # CPU mode - check system RAM
+            import psutil
+            ram_gb = psutil.virtual_memory().total / (1024**3)
+            if ram_gb >= 32:
+                return 192
+            elif ram_gb >= 16:
+                return 160
+            else:
+                return 128
+    except Exception:
+        return 128
+
+
 class TripoSRService:
     """TripoSR image-to-3D service."""
 
@@ -56,7 +100,7 @@ class TripoSRService:
         self.model = None
         self.device = None
         self._loaded = False
-        self.mc_resolution = 128  # lower resolution to fit 4GB GPUs
+        self.mc_resolution = _get_optimal_resolution()
 
         if not TRIPOSR_AVAILABLE:
             logger.warning("TripoSR service DISABLED - dependencies not available")
@@ -71,38 +115,67 @@ class TripoSRService:
             logger.warning(f"TripoSR service DISABLED - missing dependencies: {e}")
             return
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        logger.info(f"TripoSR service initialized (device: {self.device})")
+        if _torch is not None:
+            self.device = _torch.device('cuda' if _torch.cuda.is_available() else 'cpu')
+        else:
+            self.device = "cpu"
+        
+        logger.info(f"TripoSR service initialized (device: {self.device}, resolution: {self.mc_resolution})")
 
     def is_available(self) -> bool:
         """Check if TripoSR service is available."""
-        return self.enabled
+        return self.enabled and TRIPOSR_AVAILABLE
 
     def _ensure_loaded(self):
         if not self.enabled:
             raise TripoSRError("TripoSR service not enabled; install dependencies and clone docs/useful_projects/TripoSR")
         if self._loaded:
             return
+        
+        if _TSR is None:
+            raise TripoSRError("TripoSR TSR class not available")
+            
         try:
+            logger.info("Loading TripoSR model (this may take a minute on first run)...")
+            
             # Prefer local repo weights; if unavailable, try HF download
-            self.model = TSR.from_pretrained(
+            self.model = _TSR.from_pretrained(
                 "stabilityai/TripoSR",
                 config_name="config.yaml",
                 weight_name="model.ckpt",
             )
-            # reduce memory for small GPUs
+            
+            # Reduce memory for small GPUs
             if hasattr(self.model, "renderer"):
                 try:
                     self.model.renderer.set_chunk_size(1024)
+                    logger.info("Set renderer chunk size to 1024 for memory efficiency")
                 except Exception:
                     pass
+                    
             self.model.to(self.device)
             self.model.eval()
             self._loaded = True
-            logger.info("TripoSR model loaded")
+            logger.info("TripoSR model loaded successfully")
+            
         except Exception as exc:
             logger.error(f"Failed to load TripoSR model: {exc}")
             raise TripoSRError(f"Failed to load TripoSR model: {exc}")
+
+    def unload(self) -> None:
+        """Unload the model to free GPU memory."""
+        if self.model is not None:
+            del self.model
+            self.model = None
+            self._loaded = False
+            
+            if _torch is not None:
+                try:
+                    _torch.cuda.empty_cache()
+                except Exception:
+                    pass
+            gc.collect()
+            logger.info("TripoSR model unloaded")
 
     # Backwards-compatibility helpers expected by tests
     def _load_model(self):
@@ -135,16 +208,22 @@ class TripoSRService:
         if not self.enabled:
             raise TripoSRError("TripoSR service not enabled; install dependencies.")
 
+        if _torch is None:
+            raise TripoSRError("PyTorch not available")
+
         self._ensure_loaded()
 
         try:
+            logger.info("Preprocessing image for 3D reconstruction...")
             image = Image.open(BytesIO(image_bytes)).convert("RGB")
-            if bg_removal:
+            
+            if bg_removal and _remove_background is not None and _resize_foreground is not None:
                 # Match upstream TripoSR preprocessing: remove BG, crop to foreground,
                 # composite over gray background, keep 3 channels.
-                image = remove_background(image)
+                logger.info("Removing background...")
+                image = _remove_background(image)
                 image = image.convert("RGBA")
-                image = resize_foreground(image, ratio=foreground_ratio)
+                image = _resize_foreground(image, ratio=foreground_ratio)
                 arr = np.array(image).astype(np.float32) / 255.0
                 arr = arr[..., :3] * arr[..., 3:4] + (1 - arr[..., 3:4]) * 0.5
                 image = Image.fromarray((arr * 255.0).astype(np.uint8))
@@ -152,7 +231,9 @@ class TripoSRService:
                 arr = np.array(image).astype(np.float32) / 255.0
                 image = Image.fromarray((arr * 255.0).astype(np.uint8))
 
-            with torch.inference_mode():
+            logger.info(f"Generating 3D mesh (resolution: {self.mc_resolution})...")
+            
+            with _torch.inference_mode():
                 scene_codes = self.model([image], device=self.device)
                 meshes = self.model.extract_mesh(
                     scene_codes,
@@ -160,9 +241,13 @@ class TripoSRService:
                     resolution=self.mc_resolution,
                 )
                 mesh = meshes[0]
+                
             buf = BytesIO()
             mesh.export(buf, file_type="obj")
+            
+            logger.info("3D mesh generation complete")
             return buf.getvalue()
+            
         except Exception as exc:
             logger.exception("TripoSR generation failed")
             raise TripoSRError(f"TripoSR generation failed: {exc}")
@@ -178,3 +263,4 @@ def get_triposr_service() -> TripoSRService:
     if _triposr_service is None:
         _triposr_service = TripoSRService()
     return _triposr_service
+

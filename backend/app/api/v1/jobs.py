@@ -28,6 +28,7 @@ def serialize_job(job: Job) -> JobRead:
         job_type=job.job_type,
         mode=job.mode,
         status=job.status,
+        progress=job.progress,  # Include progress in response
         params=job.params,
         error_code=job.error_code,
         error_message=job.error_message,
@@ -126,8 +127,9 @@ async def create_job_endpoint(
     if settings.enable_task_queue:
         process_job.delay(job.id)
     else:
-        await process_job_async(job.id)
-        await session.refresh(job)
+        # Run in background - don't block the response
+        import asyncio
+        asyncio.create_task(process_job_async(job.id))
     return serialize_job(job)
 
 

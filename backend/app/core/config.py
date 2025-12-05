@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -25,6 +26,16 @@ class Settings(BaseSettings):
     vision_api_key: str | None = None
     vision_timeout_seconds: float = 30.0
     max_upload_mb: int = 25
+    
+    # CORS Configuration - Environment-based security
+    # In production, set CORS_ORIGINS to specific allowed domains
+    # Example: CORS_ORIGINS=https://cadlift.com,https://app.cadlift.com
+    cors_origins: str = "*"  # Comma-separated list or "*" for dev
+    cors_allow_credentials: bool = True
+    cors_allow_methods: str = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+    cors_allow_headers: str = "Authorization,Content-Type,X-Request-ID"
+    cors_expose_headers: str = "Content-Disposition,Content-Length,X-Request-ID"
+    
     # Stable Diffusion (local) for cost-free image generation
     enable_stable_diffusion: bool = False
     stable_diffusion_model: str = "runwayml/stable-diffusion-v1-5"
@@ -33,6 +44,33 @@ class Settings(BaseSettings):
     stable_diffusion_width: int = 640
     stable_diffusion_steps: int = 30
     stable_diffusion_guidance: float = 7.5
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS origins from comma-separated string to list."""
+        if self.cors_origins == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+    
+    @property
+    def cors_methods_list(self) -> List[str]:
+        """Parse CORS methods from comma-separated string to list."""
+        return [method.strip() for method in self.cors_allow_methods.split(",") if method.strip()]
+    
+    @property
+    def cors_headers_list(self) -> List[str]:
+        """Parse CORS headers from comma-separated string to list."""
+        return [header.strip() for header in self.cors_allow_headers.split(",") if header.strip()]
+    
+    @property
+    def cors_expose_headers_list(self) -> List[str]:
+        """Parse CORS expose headers from comma-separated string to list."""
+        return [header.strip() for header in self.cors_expose_headers.split(",") if header.strip()]
+    
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment.lower() in ("production", "prod")
 
 
 @lru_cache()

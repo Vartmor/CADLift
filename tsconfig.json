@@ -24,6 +24,33 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "noEmit": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "components/**/*",
+    "pages/**/*",
+    "hooks/**/*",
+    "services/**/*",
+    "contexts/**/*",
+    "config/**/*",
+    "utils/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "docs",
+    "backend",
+    "test_outputs",
+    "storage",
+    "shap_e_model_cache",
+    ".cache"
+  ]
 }

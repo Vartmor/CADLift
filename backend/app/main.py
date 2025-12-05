@@ -45,19 +45,21 @@ app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 
 # Phase 3.4: Security middleware
 app.add_middleware(SecurityHeadersMiddleware)  # Security headers
-app.add_middleware(RateLimitMiddleware, requests_per_minute=60, requests_per_hour=1000)  # Rate limiting
+app.add_middleware(RateLimitMiddleware)  # Rate limiting - uses high defaults for dev
 app.add_middleware(FileSizeLimitMiddleware, max_size=50 * 1024 * 1024)  # 50MB file size limit
 
 # Phase 3.2: Request tracing middleware
 app.add_middleware(RequestTracingMiddleware)
 
-# CORS middleware
+# CORS middleware - uses environment-based configuration for security
+# In production, set CORS_ORIGINS environment variable to specific domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_methods_list,
+    allow_headers=settings.cors_headers_list,
+    expose_headers=settings.cors_expose_headers_list,  # Allow frontend to read Content-Disposition
 )
 
 app.include_router(api_router)

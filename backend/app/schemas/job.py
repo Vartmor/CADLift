@@ -13,6 +13,7 @@ class JobBase(BaseModel):
 
 class JobRead(JobBase):
     id: str
+    progress: int = 0  # Progress percentage 0-100
     input_file_id: str | None = None
     output_file_id: str | None = None
     created_at: datetime

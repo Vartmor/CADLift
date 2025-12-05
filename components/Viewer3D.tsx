@@ -90,8 +90,34 @@ export const Viewer3D: React.FC<Viewer3DProps> = ({
 
         // Load model
         if (modelUrl) {
-          // Load from URL
-          await viewerInstance.LoadModelFromUrlList([modelUrl]);
+          // Fetch URL as blob first, then load with proper filename
+          // This is needed because Online3DViewer can't detect format from URLs without extension
+          const response = await fetch(modelUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch model: ${response.status} ${response.statusText}`);
+          }
+
+          // Get filename from Content-Disposition or use provided fileName
+          let actualFileName = fileName || 'model.glb';
+          const contentDisposition = response.headers.get('Content-Disposition');
+          if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+            if (match && match[1]) {
+              actualFileName = match[1];
+            }
+          }
+
+          // Ensure filename has .glb extension if not present
+          if (!actualFileName.toLowerCase().match(/\.(glb|gltf|obj|stl|ply|step|stp|iges|igs|fbx|3ds|3dm|off)$/)) {
+            actualFileName = 'model.glb';
+          }
+
+          const blob = await response.blob();
+          const file = new File([blob], actualFileName, { type: 'model/gltf-binary' });
+
+          console.log('Loading 3D model:', actualFileName, 'Size:', blob.size);
+          await viewerInstance.LoadModelFromFileList([file]);
+
         } else if (modelData && fileName) {
           // Load from ArrayBuffer
           const file = new File([modelData], fileName);

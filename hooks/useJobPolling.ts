@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { JobRecord, jobService } from '../services/jobService';
 
-export const useJobPolling = (jobId: string | null, intervalMs = 1500) => {
+export const useJobPolling = (jobId: string | null, intervalMs = 500) => {
   const [job, setJob] = useState<JobRecord | null>(null);
 
   useEffect(() => {

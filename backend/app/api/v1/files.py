@@ -54,11 +54,15 @@ async def download_file(
 
     # If no format conversion requested, return file as-is
     if not format:
-        headers = {"Content-Length": str(path.stat().st_size)}
+        filename = file.original_name or f"download.{file.storage_key.split('.')[-1] if '.' in file.storage_key else 'bin'}"
+        headers = {
+            "Content-Length": str(path.stat().st_size),
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        }
         return FileResponse(
             path,
             media_type=file.mime_type or "application/octet-stream",
-            filename=file.original_name,
+            filename=filename,
             headers=headers,
         )
 
