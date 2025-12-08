@@ -40,7 +40,7 @@ class Co2ToolsService:
         """
         candidates = [
             None,  # environment import
-            Path(__file__).resolve().parents[2] / "vendor" / "co2tools",
+            Path(__file__).resolve().parents[3] / "vendor" / "co2tools",
         ]
 
         for candidate in candidates:
