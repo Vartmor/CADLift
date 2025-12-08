@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Viewer3D from './Viewer3D';
 import { X, Download, Maximize2, Minimize2, Camera } from 'lucide-react';
 
@@ -32,9 +33,10 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
   modelUrl,
   modelData,
   fileName,
-  title = '3D Model Viewer',
+  title,
   downloadUrl,
 }) => {
+  const { t } = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   if (!isOpen) return null;
@@ -51,8 +53,7 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
   };
 
   const handleScreenshot = () => {
-    // TODO: Implement screenshot functionality
-    alert('Screenshot feature coming soon!');
+    alert(t('viewer.screenshotSoon'));
   };
 
   const toggleFullscreen = () => {
@@ -109,7 +110,7 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
           }}
         >
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>
-            {title}
+            {title || t('viewer.title')}
             {fileName && <span style={{ color: '#666', fontSize: '14px', marginLeft: '10px' }}>({fileName})</span>}
           </h2>
 
@@ -129,10 +130,10 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
                   alignItems: 'center',
                   gap: '5px',
                 }}
-                title="Download model"
+                title={t('viewer.download')}
               >
                 <Download size={16} />
-                Download
+                {t('viewer.download')}
               </button>
             )}
 
@@ -150,10 +151,10 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
                 alignItems: 'center',
                 gap: '5px',
               }}
-              title="Take screenshot"
+              title={t('viewer.screenshot')}
             >
               <Camera size={16} />
-              Screenshot
+              {t('viewer.screenshot')}
             </button>
 
             {/* Fullscreen toggle */}
@@ -217,10 +218,10 @@ export const Viewer3DModal: React.FC<Viewer3DModalProps> = ({
         >
           <div style={{ display: 'flex', gap: '20px' }}>
             <div>
-              <strong>Supported Formats:</strong> GLB, STEP, STL, PLY, OBJ, IGES, FBX, 3DM, 3DS, and more
+              <strong>{t('viewer.supportedFormats')}:</strong> GLB, STEP, STL, PLY, OBJ, IGES, FBX, 3DM, 3DS, and more
             </div>
             <div>
-              <strong>Powered by:</strong> Online3DViewer (WebGL)
+              <strong>{t('viewer.poweredBy')}:</strong> Online3DViewer (WebGL)
             </div>
           </div>
         </div>

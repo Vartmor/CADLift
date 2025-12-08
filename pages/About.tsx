@@ -24,36 +24,36 @@ const About: React.FC = () => {
   const capabilities = [
     {
       icon: <FileDigit className="w-8 h-8" />,
-      title: 'DWG/DXF to 3D',
-      description: 'Upload AutoCAD files (DWG or DXF) and we extrude closed shapes into 3D models. Supports walls, doors, windows detection.',
+      title: t('about.workflows.dwg.title'),
+      description: t('about.workflows.dwg.description'),
       color: 'purple'
     },
     {
       icon: <Image className="w-8 h-8" />,
-      title: 'Image to 3D',
-      description: 'Transform any 2D image into a detailed 3D model using TripoSR AI. Works with photos, sketches, and renders.',
+      title: t('about.workflows.image.title'),
+      description: t('about.workflows.image.description'),
       color: 'blue'
     },
     {
       icon: <MessageSquare className="w-8 h-8" />,
-      title: 'Prompt to 3D',
-      description: 'Describe your idea in text. Our AI generates an image with Stable Diffusion, then converts it to 3D.',
+      title: t('about.workflows.prompt.title'),
+      description: t('about.workflows.prompt.description'),
       color: 'orange'
     },
   ];
 
   const features = [
-    { icon: <Eye size={20} />, text: 'Built-in 3D Viewer', color: 'green' },
-    { icon: <Download size={20} />, text: 'GLB, STL, DXF, STEP Export', color: 'pink' },
-    { icon: <Zap size={20} />, text: 'Real-Time Progress', color: 'yellow' },
-    { icon: <Shield size={20} />, text: 'Local Processing', color: 'slate' },
+    { icon: <Eye size={20} />, text: t('about.features.viewer'), color: 'green' },
+    { icon: <Download size={20} />, text: t('about.features.export'), color: 'pink' },
+    { icon: <Zap size={20} />, text: t('about.features.realtime'), color: 'yellow' },
+    { icon: <Shield size={20} />, text: t('about.features.local'), color: 'slate' },
   ];
 
   const techStack = [
-    { name: 'Frontend', items: ['React', 'TypeScript', 'Tailwind CSS', 'Vite'] },
-    { name: 'Backend', items: ['FastAPI', 'Python', 'SQLAlchemy', 'Celery'] },
-    { name: 'AI Models', items: ['Stable Diffusion', 'TripoSR', 'OpenAI (optional)'] },
-    { name: 'CAD Tools', items: ['ezdxf', 'co2tools', 'ODA Converter', 'trimesh'] },
+    { name: t('about.tech.frontend'), items: ['React', 'TypeScript', 'Tailwind CSS', 'Vite'] },
+    { name: t('about.tech.backend'), items: ['FastAPI', 'Python', 'SQLAlchemy', 'Celery'] },
+    { name: t('about.tech.ai'), items: ['Stable Diffusion', 'TripoSR', 'OpenAI (optional)'] },
+    { name: t('about.tech.cad'), items: ['ezdxf', 'co2tools', 'ODA Converter', 'trimesh'] },
   ];
 
   const colorClasses: Record<string, { bg: string; border: string; text: string }> = {
@@ -73,23 +73,23 @@ const About: React.FC = () => {
       <div className="text-center mb-20">
         <div className="inline-flex items-center space-x-2 px-4 py-2 mb-8 rounded-full bg-primary-100 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800">
           <Sparkles size={16} className="text-primary-600 dark:text-primary-400" />
-          <span className="text-sm font-bold text-primary-700 dark:text-primary-300">AI-Powered 3D Generation</span>
+          <span className="text-sm font-bold text-primary-700 dark:text-primary-300">{t('about.badge')}</span>
         </div>
 
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
-          Transform <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-purple-600">Anything</span> Into 3D
+          {t('about.hero.title1')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-purple-600">{t('about.hero.titleHighlight')}</span> {t('about.hero.title2')}
         </h1>
 
         <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
-          CADLift is an open-source platform that converts CAD files, images, and text prompts into production-ready 3D models using AI and advanced geometry processing.
+          {t('about.hero.subtitle')}
         </p>
       </div>
 
       {/* 3 Workflows Section */}
       <div className="mb-20">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">Three Ways to Create 3D</h2>
-          <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Choose the workflow that fits your needs.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">{t('about.workflows.title')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">{t('about.workflows.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -114,7 +114,7 @@ const About: React.FC = () => {
       {/* Additional Features */}
       <div className="mb-20">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">Plus These Features</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">{t('about.features.title')}</h2>
         </div>
 
         <div className="flex flex-wrap justify-center gap-4">
@@ -133,8 +133,8 @@ const About: React.FC = () => {
       {/* Tech Stack */}
       <div className="mb-20">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">Built With</h2>
-          <p className="text-slate-500 dark:text-slate-400">Modern, open-source technologies.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">{t('about.tech.title')}</h2>
+          <p className="text-slate-500 dark:text-slate-400">{t('about.tech.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -156,15 +156,15 @@ const About: React.FC = () => {
 
       {/* CTA Section */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 rounded-3xl p-12 text-center">
-        <h2 className="text-3xl font-black text-white mb-4">Ready to Try?</h2>
+        <h2 className="text-3xl font-black text-white mb-4">{t('about.cta.title')}</h2>
         <p className="text-slate-300 mb-8 max-w-xl mx-auto">
-          Start generating 3D models from CAD files, images, or text prompts right now.
+          {t('about.cta.subtitle')}
         </p>
         <button
           onClick={() => navigate('/dashboard')}
           className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-slate-900 bg-white rounded-xl hover:bg-slate-100 hover:scale-105 transition-all duration-200 shadow-xl"
         >
-          Open Dashboard
+          {t('about.cta.button')}
           <ArrowRight className="ml-2 w-5 h-5" />
         </button>
       </div>
@@ -172,7 +172,7 @@ const About: React.FC = () => {
       {/* Footer Disclaimer */}
       <div className="mt-12 p-6 bg-slate-100 dark:bg-slate-900/50 rounded-2xl text-center border border-slate-200 dark:border-slate-800/50">
         <p className="text-slate-500 dark:text-slate-400 text-sm">
-          CADLift is an open-source project. AI features require model downloads on first use.
+          {t('about.disclaimer')}
         </p>
       </div>
     </div>

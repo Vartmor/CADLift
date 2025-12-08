@@ -6,11 +6,9 @@ import {
   Github,
   Twitter,
   Linkedin,
-  Mail,
   ExternalLink,
   Sparkles,
   FileText,
-  HelpCircle,
   Users,
   Heart
 } from 'lucide-react';
@@ -20,31 +18,55 @@ const Footer: React.FC = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
 
-  const footerLinks = {
-    product: [
-      { label: 'Dashboard', href: '/dashboard' },
-      { label: 'DWG/DXF to 3D', href: '/dashboard' },
-      { label: 'Image to 3D', href: '/dashboard' },
-      { label: 'Prompt to 3D', href: '/dashboard' },
-    ],
-    resources: [
-      { label: 'API Docs', href: 'http://localhost:8000/docs', external: true },
-      { label: 'Resources', href: '/resources' },
-      { label: 'FAQ', href: '/resources#faq' },
-      { label: 'Community', href: '/resources#community' },
-    ],
-    company: [
-      { label: 'About', href: '/about' },
-      { label: 'GitHub', href: 'https://github.com/vartmor', external: true },
-      { label: 'Contact', href: 'mailto:hello@cadlift.io', external: true },
-    ],
-  };
+  const productLinks = [
+    { labelKey: 'footer.links.dashboard', href: '/dashboard' },
+    { labelKey: 'footer.links.dwgTo3d', href: '/dashboard' },
+    { labelKey: 'footer.links.imageTo3d', href: '/dashboard' },
+    { labelKey: 'footer.links.promptTo3d', href: '/dashboard' },
+  ];
+
+  const resourceLinks = [
+    { labelKey: 'footer.links.apiDocs', href: 'http://localhost:8000/docs', external: true },
+    { labelKey: 'footer.links.resources', href: '/resources' },
+    { labelKey: 'footer.links.faq', href: '/resources#faq' },
+    { labelKey: 'footer.links.community', href: '/resources#community' },
+  ];
+
+  const companyLinks = [
+    { labelKey: 'footer.links.about', href: '/about' },
+    { labelKey: 'footer.links.github', href: 'https://github.com/vartmor', external: true },
+    { labelKey: 'footer.links.contact', href: 'mailto:hello@cadlift.io', external: true },
+  ];
 
   const socialLinks = [
     { icon: Github, href: 'https://github.com/vartmor', label: 'GitHub' },
     { icon: Twitter, href: '#', label: 'Twitter' },
     { icon: Linkedin, href: '#', label: 'LinkedIn' },
   ];
+
+  const renderLink = (link: { labelKey: string; href: string; external?: boolean }) => {
+    if (link.external) {
+      return (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1"
+        >
+          {t(link.labelKey)}
+          <ExternalLink size={10} className="opacity-50" />
+        </a>
+      );
+    }
+    return (
+      <button
+        onClick={() => navigate(link.href)}
+        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+      >
+        {t(link.labelKey)}
+      </button>
+    );
+  };
 
   return (
     <footer className="relative overflow-hidden">
@@ -55,7 +77,7 @@ const Footer: React.FC = () => {
       <div className="bg-slate-50 dark:bg-slate-950 pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-6">
 
-          {/* Top section - Brand + Newsletter */}
+          {/* Top section - Brand + Links */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-12 pb-12 border-b border-slate-200 dark:border-slate-800">
 
             {/* Brand section */}
@@ -69,8 +91,7 @@ const Footer: React.FC = () => {
                 </span>
               </div>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                Transform your 2D designs into stunning 3D models instantly.
-                Powered by advanced geometry processing and AI.
+                {t('footer.brand.description')}
               </p>
 
               {/* Social links */}
@@ -96,18 +117,11 @@ const Footer: React.FC = () => {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
                   <Sparkles size={12} />
-                  Product
+                  {t('footer.sections.product')}
                 </h4>
                 <ul className="space-y-3">
-                  {footerLinks.product.map((link) => (
-                    <li key={link.label}>
-                      <button
-                        onClick={() => navigate(link.href)}
-                        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                      >
-                        {link.label}
-                      </button>
-                    </li>
+                  {productLinks.map((link) => (
+                    <li key={link.labelKey}>{renderLink(link)}</li>
                   ))}
                 </ul>
               </div>
@@ -116,30 +130,11 @@ const Footer: React.FC = () => {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
                   <FileText size={12} />
-                  Resources
+                  {t('footer.sections.resources')}
                 </h4>
                 <ul className="space-y-3">
-                  {footerLinks.resources.map((link) => (
-                    <li key={link.label}>
-                      {link.external ? (
-                        <a
-                          href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1"
-                        >
-                          {link.label}
-                          <ExternalLink size={10} className="opacity-50" />
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => navigate(link.href)}
-                          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                        >
-                          {link.label}
-                        </button>
-                      )}
-                    </li>
+                  {resourceLinks.map((link) => (
+                    <li key={link.labelKey}>{renderLink(link)}</li>
                   ))}
                 </ul>
               </div>
@@ -148,30 +143,11 @@ const Footer: React.FC = () => {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
                   <Users size={12} />
-                  Company
+                  {t('footer.sections.company')}
                 </h4>
                 <ul className="space-y-3">
-                  {footerLinks.company.map((link) => (
-                    <li key={link.label}>
-                      {link.external ? (
-                        <a
-                          href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1"
-                        >
-                          {link.label}
-                          <ExternalLink size={10} className="opacity-50" />
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => navigate(link.href)}
-                          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                        >
-                          {link.label}
-                        </button>
-                      )}
-                    </li>
+                  {companyLinks.map((link) => (
+                    <li key={link.labelKey}>{renderLink(link)}</li>
                   ))}
                 </ul>
               </div>
@@ -182,13 +158,13 @@ const Footer: React.FC = () => {
           <div className="pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500">
               <span>© {currentYear} CADLift.</span>
-              <span className="hidden sm:inline">All rights reserved.</span>
+              <span className="hidden sm:inline">{t('footer.copyright')}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500">
-              <span>Made with</span>
+              <span>{t('footer.madeWith')}</span>
               <Heart size={14} className="text-red-500 fill-red-500" />
-              <span>by</span>
+              <span>{t('footer.by')}</span>
               <a
                 href="https://github.com/vartmor"
                 target="_blank"

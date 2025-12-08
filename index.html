@@ -151,7 +151,7 @@
     }
 
     .dark .bg-grid-slate-800 {
-      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%231e293b' stroke-opacity='0.15'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%231e293b' stroke-opacity='0.06'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
     }
 
     .animation-delay-500 {
@@ -406,6 +406,74 @@
       opacity: 1;
       transform: translateX(0);
     }
+
+    /* Language Switch Animation - Fast blink that hides content swap */
+    @keyframes langSwitch {
+      0% {
+        opacity: 1;
+      }
+
+      40% {
+        opacity: 0;
+      }
+
+      60% {
+        opacity: 0;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .lang-switching {
+      animation: langSwitch 0.25s ease-in-out;
+    }
+
+    .lang-switching main,
+    .lang-switching nav,
+    .lang-switching footer {
+      animation: langSwitch 0.25s ease-in-out;
+    }
+
+    /* ===== PAGE TRANSITION ANIMATIONS ===== */
+
+    /* Simple, subtle page transitions */
+    .page-transition {
+      will-change: opacity, transform;
+    }
+
+    .page-fade-out {
+      animation: fadeSlideOut 0.15s ease-out forwards;
+    }
+
+    .page-fade-in {
+      animation: fadeSlideIn 0.3s ease-out forwards;
+    }
+
+    @keyframes fadeSlideOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
   <script type="importmap">
 {
@@ -420,7 +488,6 @@
   }
 }
 </script>
-  <!-- Local stylesheet link removed (not generated in build); Tailwind is loaded via CDN -->
 </head>
 
 <body

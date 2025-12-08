@@ -1,7 +1,10 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import PageTransition from './components/PageTransition';
 
 // Lazy load pages for better performance (code splitting)
 const Home = lazy(() => import('./pages/Home'));
@@ -24,25 +27,29 @@ const PageLoader: React.FC = () => (
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <Layout>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/resources" element={<Resources />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/about" element={<About />} />
-              {/* Catch-all route for 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </Layout>
-      </BrowserRouter>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Layout>
+            <PageTransition>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/signin" element={<SignIn />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/resources" element={<Resources />} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/about" element={<About />} />
+                  {/* Catch-all route for 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </PageTransition>
+          </Layout>
+        </BrowserRouter>
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 

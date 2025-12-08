@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import UploadForm from '../components/UploadForm';
 import JobStatusComponent from '../components/JobStatus';
@@ -26,12 +27,16 @@ import {
   CircleDot,
   ClipboardList,
   FileText,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 type WorkflowTab = 'dxf' | 'image' | 'prompt';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [presetMode, setPresetMode] = useState<ConversionMode | null>(null);
   const [presetModeSignal, setPresetModeSignal] = useState(0);
@@ -397,28 +402,130 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-10 animate-fade-in">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 backdrop-blur p-6 sm:p-8 shadow-xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 dark:text-slate-300">
-              <ClipboardList size={14} />
-              <span>{t('dashboard.workspace.title')}</span>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-900 dark:text-white">
-              {t('dashboard.hero.title')}
-            </h1>
-            <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-3xl">
-              {t('dashboard.hero.subtitle')}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 justify-start md:justify-end">
-            {heroStats.map((stat) => (
-              <div key={stat.label} className="min-w-[140px] rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm p-4">
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{stat.value}</p>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">{stat.label}</p>
+      {/* === NEW CREATIVE HERO SECTION === */}
+      <section className="relative rounded-[2rem] overflow-hidden">
+        {/* Animated gradient background - Light/Dark mode */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-cyan-500 to-teal-600 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
+
+        {/* Animated mesh overlay */}
+        <div className="absolute inset-0 opacity-40 dark:opacity-30">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white/40 dark:bg-primary-500/20 rounded-full blur-[100px] animate-blob" />
+          <div className="absolute bottom-0 right-0 w-80 h-80 bg-yellow-200/40 dark:bg-cyan-500/20 rounded-full blur-[100px] animate-blob animation-delay-2000" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-200/30 dark:bg-teal-500/15 rounded-full blur-[80px] animate-blob animation-delay-4000" />
+        </div>
+
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+
+        {/* Content */}
+        <div className="relative z-10 p-8 md:p-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+
+            {/* Left: Welcome & User Info */}
+            <div className="flex-1 space-y-6">
+              {/* Greeting with animated badge */}
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/10">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-xs font-semibold text-white uppercase tracking-widest">{t('dashboard.hero.tagline')}</span>
+                </div>
+
+                <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">
+                  {jobHistory.length > 0 ? t('dashboard.hero.greeting') : t('dashboard.hero.newUser')}
+                  {user && (
+                    <span className="block text-2xl md:text-3xl font-bold mt-2 text-primary-200 dark:text-primary-400">
+                      {user.display_name}
+                    </span>
+                  )}
+                </h1>
               </div>
-            ))}
+
+              {/* Quick action buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleLaunchWorkspace()}
+                  className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-bold text-sm shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+                >
+                  <Sparkles size={18} className="text-primary-500" />
+                  {t('dashboard.hero.createNew')}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/20 text-white font-semibold text-sm hover:bg-white/30 dark:hover:bg-white/20 transition-all"
+                >
+                  {t('dashboard.hero.viewProjects')}
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Stats Cards */}
+            <div className="grid grid-cols-2 gap-3 lg:w-auto">
+              {/* Total Conversions */}
+              <div className="relative group p-5 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/15 hover:border-white/40 dark:hover:border-white/20 transition-all overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 dark:bg-primary-500/20 rounded-full blur-2xl group-hover:bg-white/30 dark:group-hover:bg-primary-500/30 transition-colors" />
+                <div className="relative">
+                  <p className="text-3xl font-black text-white">{jobHistory.length}</p>
+                  <p className="text-xs font-medium text-white/80 dark:text-white/60 uppercase tracking-wider mt-1">{t('dashboard.hero.stats.conversions')}</p>
+                </div>
+              </div>
+
+              {/* This Week */}
+              <div className="relative group p-5 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/15 hover:border-white/40 dark:hover:border-white/20 transition-all overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 dark:bg-purple-500/20 rounded-full blur-2xl group-hover:bg-white/30 dark:group-hover:bg-purple-500/30 transition-colors" />
+                <div className="relative">
+                  <p className="text-3xl font-black text-white">
+                    {jobHistory.filter(j => {
+                      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                      return j.createdAt > weekAgo;
+                    }).length}
+                  </p>
+                  <p className="text-xs font-medium text-white/80 dark:text-white/60 uppercase tracking-wider mt-1">{t('dashboard.hero.stats.thisWeek')}</p>
+                </div>
+              </div>
+
+              {/* Success Rate */}
+              <div className="relative group p-5 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/15 hover:border-white/40 dark:hover:border-white/20 transition-all overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 dark:bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-white/30 dark:group-hover:bg-emerald-500/30 transition-colors" />
+                <div className="relative">
+                  <p className="text-3xl font-black text-white">
+                    {jobHistory.length > 0
+                      ? Math.round((jobHistory.filter(j => j.status === JobState.COMPLETED).length / jobHistory.length) * 100)
+                      : 0}%
+                  </p>
+                  <p className="text-xs font-medium text-white/80 dark:text-white/60 uppercase tracking-wider mt-1">{t('dashboard.hero.stats.successRate')}</p>
+                </div>
+              </div>
+
+              {/* Avg Time */}
+              <div className="relative group p-5 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/15 hover:border-white/40 dark:hover:border-white/20 transition-all overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 dark:bg-amber-500/20 rounded-full blur-2xl group-hover:bg-white/30 dark:group-hover:bg-amber-500/30 transition-colors" />
+                <div className="relative">
+                  <p className="text-3xl font-black text-white">
+                    {(() => {
+                      const completed = jobHistory.filter(j => j.status === JobState.COMPLETED);
+                      if (completed.length === 0) return '0s';
+                      const avg = Math.round(completed.reduce((acc, j) => acc + ((j.completedAt ?? j.updatedAt) - j.createdAt), 0) / completed.length / 1000);
+                      return `${avg}s`;
+                    })()}
+                  </p>
+                  <p className="text-xs font-medium text-white/80 dark:text-white/60 uppercase tracking-wider mt-1">{t('dashboard.hero.stats.avgTime')}</p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Empty state message for new users */}
+          {jobHistory.length === 0 && (
+            <div className="mt-8 p-6 rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 border-dashed text-center">
+              <Sparkles size={32} className="mx-auto text-white mb-3" />
+              <p className="text-lg font-bold text-white">{t('dashboard.hero.emptyState.title')}</p>
+              <p className="text-sm text-white/80 dark:text-white/60 mt-1">{t('dashboard.hero.emptyState.subtitle')}</p>
+            </div>
+          )}
         </div>
       </section>
 

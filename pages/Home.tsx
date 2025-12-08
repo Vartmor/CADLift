@@ -4,10 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   Box,
-  Layers,
-  Ruler,
   Sparkles,
-  MousePointer2,
   FileDigit,
   Cpu,
   Image,
@@ -48,6 +45,12 @@ const Home: React.FC = () => {
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Get CAD features array from translations
+  const cadFeatures = t('home.features.cad.features', { returnObjects: true }) as string[];
+
+  // Get howItWorks steps from translations  
+  const howItWorksSteps = t('home.howItWorks.steps', { returnObjects: true }) as Array<{ title: string; description: string }>;
 
   return (
     <div className="w-full flex flex-col relative overflow-hidden">
@@ -139,16 +142,16 @@ const Home: React.FC = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
             </span>
-            <span className="text-sm font-bold bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 bg-clip-text text-transparent">AI-Powered 3D Generation</span>
+            <span className="text-sm font-bold bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 bg-clip-text text-transparent">{t('home.hero.badge')}</span>
             <Sparkles size={16} className="text-primary-500 animate-pulse" />
           </div>
 
           {/* Main Headline with Gradient Animation */}
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 dark:text-white mb-8 leading-[0.95] animate-fade-in-up animation-delay-200">
-            <span className="block mb-2">Turn</span>
+            <span className="block mb-2">{t('home.hero.title1')}</span>
             <span className="relative inline-block">
               <span className="gradient-text-animate font-black">
-                Anything
+                {t('home.hero.title2')}
               </span>
               <svg className="absolute -bottom-3 left-0 w-full" viewBox="0 0 200 12" fill="none">
                 <path d="M2 10C50 2 150 2 198 10" stroke="url(#underline-gradient)" strokeWidth="4" strokeLinecap="round" className="animate-pulse" />
@@ -162,18 +165,21 @@ const Home: React.FC = () => {
               </svg>
             </span>
             <br />
-            <span className="text-slate-300 dark:text-slate-600">Into</span>{' '}
+            <span className="text-slate-500 dark:text-slate-400">{t('home.hero.title3')}</span>{' '}
             <span className="relative">
-              <span className="bg-gradient-to-r from-primary-500 via-purple-500 to-blue-500 bg-clip-text text-transparent glow-text">3D</span>
+              <span className="bg-gradient-to-r from-primary-500 via-purple-500 to-blue-500 bg-clip-text text-transparent glow-text">{t('home.hero.title4')}</span>
             </span>
           </h1>
 
           {/* Sub-headline */}
           <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-14 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-400">
-            From <span className="font-bold text-purple-600 dark:text-purple-400">CAD files</span> to{' '}
-            <span className="font-bold text-violet-600 dark:text-violet-400">images</span> to{' '}
-            <span className="font-bold text-orange-600 dark:text-orange-400">text prompts</span> —{' '}
-            generate production-ready 3D models in seconds.
+            {t('home.hero.subtitle')}{' '}
+            <span className="font-bold text-purple-600 dark:text-purple-400">{t('home.hero.subtitleCad')}</span>{' '}
+            {t('home.hero.subtitleTo')}{' '}
+            <span className="font-bold text-violet-600 dark:text-violet-400">{t('home.hero.subtitleImages')}</span>{' '}
+            {t('home.hero.subtitleTo')}{' '}
+            <span className="font-bold text-orange-600 dark:text-orange-400">{t('home.hero.subtitlePrompts')}</span>{' '}
+            {t('home.hero.subtitleEnd')}
           </p>
 
           {/* CTA Buttons with Glow */}
@@ -184,7 +190,7 @@ const Home: React.FC = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-violet-600/20 to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
               <Play size={22} className="text-primary-400 dark:text-primary-600 relative z-10" />
-              <span className="relative z-10">Start Creating</span>
+              <span className="relative z-10">{t('home.hero.primaryCta')}</span>
               <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform relative z-10" />
             </button>
 
@@ -192,7 +198,7 @@ const Home: React.FC = () => {
               onClick={scrollToFeatures}
               className="group px-10 py-5 glass-card text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-lg hover:border-primary-500 dark:hover:border-primary-400 shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 hover-lift"
             >
-              Explore Features
+              {t('home.hero.secondaryCta')}
               <ChevronDown size={22} className="group-hover:translate-y-1 transition-transform" />
             </button>
           </div>
@@ -200,9 +206,9 @@ const Home: React.FC = () => {
           {/* Input Types Preview - Glassmorphic Cards */}
           <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in-up animation-delay-1000">
             {[
-              { icon: FileDigit, label: 'DWG / DXF', color: 'purple', gradient: 'from-purple-500 to-purple-700' },
-              { icon: Image, label: 'Images', color: 'blue', gradient: 'from-blue-500 to-blue-700' },
-              { icon: Wand2, label: 'AI Prompts', color: 'orange', gradient: 'from-orange-500 to-orange-700' },
+              { icon: FileDigit, labelKey: 'home.hero.inputTypes.dwg', color: 'purple', gradient: 'from-purple-500 to-purple-700' },
+              { icon: Image, labelKey: 'home.hero.inputTypes.images', color: 'blue', gradient: 'from-blue-500 to-blue-700' },
+              { icon: Wand2, labelKey: 'home.hero.inputTypes.prompts', color: 'orange', gradient: 'from-orange-500 to-orange-700' },
             ].map((item, idx) => (
               <div
                 key={idx}
@@ -213,16 +219,10 @@ const Home: React.FC = () => {
                 <div className={`p-2.5 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:scale-110 transition-transform`}>
                   <item.icon size={22} className="text-white" />
                 </div>
-                <span className="font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
+                <span className="font-bold text-slate-700 dark:text-slate-200">{t(item.labelKey)}</span>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Animated Scroll Indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-60 animate-bounce">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Scroll to explore</span>
-          <ChevronDown size={24} className="text-primary-500" />
         </div>
       </div>
 
@@ -238,14 +238,14 @@ const Home: React.FC = () => {
           <div className="text-center mb-20 reveal">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 mb-8 rounded-full glass-card border border-primary-200/50 dark:border-primary-700/30 shadow-lg shimmer">
               <Zap size={18} className="text-primary-500" />
-              <span className="text-sm font-bold bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 bg-clip-text text-transparent">Powerful Features</span>
+              <span className="text-sm font-bold bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 bg-clip-text text-transparent">{t('home.features.badge')}</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6">
-              Three Ways to{' '}
-              <span className="gradient-text-animate">Create</span>
+              {t('home.features.title')}{' '}
+              <span className="gradient-text-animate">{t('home.features.titleAccent')}</span>
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Choose your input method. We handle the rest.
+              {t('home.features.subtitle')}
             </p>
           </div>
 
@@ -266,12 +266,12 @@ const Home: React.FC = () => {
                 <div className="w-18 h-18 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 transition-transform">
                   <FileDigit size={36} />
                 </div>
-                <h3 className="text-3xl font-black mb-5">DWG/DXF to 3D</h3>
+                <h3 className="text-3xl font-black mb-5">{t('home.features.cad.title')}</h3>
                 <p className="text-purple-100 text-lg leading-relaxed mb-10">
-                  Upload AutoCAD files directly. We auto-detect layers, walls, and shapes — then extrude to 3D models.
+                  {t('home.features.cad.description')}
                 </p>
                 <ul className="space-y-4 text-purple-100">
-                  {['Native DWG support via ODA', 'All DXF versions', 'Auto layer detection', 'Closed shape extrusion'].map((item, i) => (
+                  {cadFeatures.map((item, i) => (
                     <li key={i} className="flex items-center gap-4 group/item">
                       <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover/item:bg-white/30 group-hover/item:scale-110 transition-all">
                         <Check size={14} />
@@ -292,9 +292,9 @@ const Home: React.FC = () => {
                 <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 transition-transform">
                   <Image size={32} />
                 </div>
-                <h3 className="text-2xl font-black mb-4">Image to 3D</h3>
+                <h3 className="text-2xl font-black mb-4">{t('home.features.image.title')}</h3>
                 <p className="text-indigo-100 leading-relaxed text-lg">
-                  Upload any image — photos, sketches, renders. Our AI reconstructs it in 3D using TripoSR.
+                  {t('home.features.image.description')}
                 </p>
               </div>
             </div>
@@ -308,9 +308,9 @@ const Home: React.FC = () => {
                 <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 group-hover:rotate-12 transition-all">
                   <MessageSquare size={32} />
                 </div>
-                <h3 className="text-2xl font-black mb-4">Prompt to 3D</h3>
+                <h3 className="text-2xl font-black mb-4">{t('home.features.prompt.title')}</h3>
                 <p className="text-orange-100 leading-relaxed text-lg">
-                  Just describe it. Stable Diffusion generates an image, then TripoSR builds your 3D model.
+                  {t('home.features.prompt.description')}
                 </p>
               </div>
             </div>
@@ -324,8 +324,8 @@ const Home: React.FC = () => {
                   <Eye size={26} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">3D Viewer</h3>
-                  <p className="text-slate-500 dark:text-slate-400">Preview before download</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('home.features.viewer.title')}</h3>
+                  <p className="text-slate-500 dark:text-slate-400">{t('home.features.viewer.description')}</p>
                 </div>
               </div>
             </div>
@@ -339,8 +339,8 @@ const Home: React.FC = () => {
                   <Download size={26} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Multi-Format</h3>
-                  <p className="text-slate-500 dark:text-slate-400">GLB, STL, DXF, STEP</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('home.features.export.title')}</h3>
+                  <p className="text-slate-500 dark:text-slate-400">{t('home.features.export.description')}</p>
                 </div>
               </div>
             </div>
@@ -357,11 +357,11 @@ const Home: React.FC = () => {
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-20 reveal">
             <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6">
-              How It{' '}
-              <span className="gradient-text-animate">Works</span>
+              {t('home.howItWorks.title')}{' '}
+              <span className="gradient-text-animate">{t('home.howItWorks.titleAccent')}</span>
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
-              Three simple steps to 3D
+              {t('home.howItWorks.subtitle')}
             </p>
           </div>
 
@@ -376,31 +376,34 @@ const Home: React.FC = () => {
             <div className="hidden md:block absolute top-12 right-[16.67%] translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { step: '1', title: 'Upload or Describe', desc: 'Drop your CAD file, image, or type a prompt', icon: FileDigit, gradient: 'from-purple-500 to-violet-500' },
-                { step: '2', title: 'AI Processing', desc: 'Our engines detect geometry and generate 3D', icon: Cpu, gradient: 'from-violet-500 to-purple-600' },
-                { step: '3', title: 'View & Download', desc: 'Preview in 3D viewer, export in any format', icon: Box, gradient: 'from-purple-600 to-pink-500' },
-              ].map((item, idx) => (
-                <div key={idx} className={`relative group reveal ${idx === 1 ? 'animation-delay-200' : idx === 2 ? 'animation-delay-400' : ''}`}>
+              {howItWorksSteps.map((item, idx) => {
+                const icons = [FileDigit, Cpu, Box];
+                const gradients = ['from-purple-500 to-violet-500', 'from-violet-500 to-purple-600', 'from-purple-600 to-pink-500'];
+                const Icon = icons[idx];
+                const gradient = gradients[idx];
 
-                  {/* Card */}
-                  <div className="relative glass-card rounded-3xl p-10 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 overflow-hidden">
-                    {/* Gradient accent on hover */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                return (
+                  <div key={idx} className={`relative group reveal ${idx === 1 ? 'animation-delay-200' : idx === 2 ? 'animation-delay-400' : ''}`}>
 
-                    {/* Step number badge */}
-                    <div className={`absolute top-6 right-6 w-10 h-10 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg`}>
-                      <span className="text-white font-bold text-lg">{item.step}</span>
+                    {/* Card */}
+                    <div className="relative glass-card rounded-3xl p-10 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 overflow-hidden">
+                      {/* Gradient accent on hover */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+
+                      {/* Step number badge */}
+                      <div className={`absolute top-6 right-6 w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
+                        <span className="text-white font-bold text-lg">{idx + 1}</span>
+                      </div>
+
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all relative z-10`}>
+                        <Icon size={30} className="text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 relative z-10">{item.title}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-lg relative z-10">{item.description}</p>
                     </div>
-
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all relative z-10`}>
-                      <item.icon size={30} className="text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 relative z-10">{item.title}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-lg relative z-10">{item.desc}</p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -437,16 +440,16 @@ const Home: React.FC = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-5 py-2.5 mb-10 rounded-full glass backdrop-blur-xl border border-white/20 shadow-2xl shimmer">
             <Star size={16} className="text-yellow-400" />
-            <span className="text-sm font-bold text-white/90">Start for free</span>
+            <span className="text-sm font-bold text-white/90">{t('home.cta.badge')}</span>
             <Sparkles size={16} className="text-primary-400" />
           </div>
 
           <h2 className="text-5xl md:text-7xl font-black text-white mb-8">
-            Ready to{' '}
-            <span className="gradient-text-animate">Create</span>?
+            {t('home.cta.title')}{' '}
+            <span className="gradient-text-animate">{t('home.cta.titleAccent')}</span>?
           </h2>
           <p className="text-xl md:text-2xl text-slate-300 mb-14 max-w-2xl mx-auto leading-relaxed">
-            Transform CAD files, images, or ideas into 3D models. No credit card required.
+            {t('home.cta.subtitle')}
           </p>
 
           <button
@@ -457,7 +460,7 @@ const Home: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
             <Play size={26} className="text-primary-600 relative z-10" />
-            <span className="relative z-10">Open Dashboard</span>
+            <span className="relative z-10">{t('home.cta.button')}</span>
             <ArrowRight size={26} className="group-hover:translate-x-2 transition-transform relative z-10" />
           </button>
         </div>

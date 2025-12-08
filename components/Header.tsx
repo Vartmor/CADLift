@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import { Moon, Sun, Box, Languages, ChevronRight } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Moon, Sun, Box, Languages, ChevronRight, User, ChevronDown, Check } from 'lucide-react';
+import { triggerLanguageSwitch } from './Layout';
 
 type NavItem = {
   key: string;
@@ -13,20 +15,39 @@ type NavItem = {
   href?: string;
 };
 
+const languages = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+];
+
 const Header: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'en' ? 'tr' : 'en';
-    i18n.changeLanguage(newLang);
-    try {
-      window.localStorage.setItem('cadlift_language', newLang);
-    } catch {
-      // ignore storage errors
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectLanguage = (langCode: string) => {
+    if (langCode !== i18n.language) {
+      // Store the selected language, then trigger the animation
+      window.localStorage.setItem('cadlift_pending_lang', langCode);
+      triggerLanguageSwitch();
     }
+    setLangMenuOpen(false);
   };
 
   const navItems: NavItem[] = useMemo(() => ([
@@ -56,18 +77,28 @@ const Header: React.FC = () => {
       }
     }
   };
-  
-  // Check if we are in auth pages to hide navigation elements
+
   const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
-  const isDashboard = location.pathname === '/dashboard';
+
+  const getUserInitials = () => {
+    if (!user?.display_name) return 'U';
+    return user.display_name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const currentLang = languages.find(l => l.code === i18n.language) || languages[0];
 
   return (
     <header className="sticky top-4 z-50 mx-4 sm:mx-6 lg:mx-8 mb-6">
       <div className="max-w-7xl mx-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-200/60 dark:border-slate-700/60 px-4 sm:px-6 h-16 flex items-center justify-between transition-all duration-300">
-        
+
         {/* Logo */}
-        <div 
-          onClick={() => navigate('/')} 
+        <div
+          onClick={() => navigate('/')}
           className="flex items-center space-x-3 group cursor-pointer"
           role="button"
           tabIndex={0}
@@ -92,11 +123,10 @@ const Header: React.FC = () => {
                 type="button"
                 key={item.key}
                 onClick={() => handleNavigate(item)}
-                className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                  isActive(item)
-                    ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm' 
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
-                }`}
+                className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isActive(item)
+                  ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                  }`}
               >
                 {item.label}
               </button>
@@ -106,17 +136,40 @@ const Header: React.FC = () => {
 
         {/* Controls */}
         <div className="flex items-center gap-3">
-          {/* Language Toggle */}
-          <button
-            onClick={toggleLanguage}
-            className="hidden sm:flex group relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors outline-none"
-            aria-label="Toggle Language"
-          >
-            <div className="flex items-center space-x-1">
+          {/* Language Dropdown */}
+          <div ref={langMenuRef} className="relative hidden sm:block">
+            <button
+              onClick={() => setLangMenuOpen(!langMenuOpen)}
+              className="group flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors outline-none"
+              aria-label="Select Language"
+            >
               <Languages size={18} className="group-hover:text-primary-500 transition-colors" />
-              <span className="text-xs font-bold uppercase tracking-wider">{i18n.language}</span>
-            </div>
-          </button>
+              <span className="text-xs font-bold uppercase tracking-wider">{currentLang.code}</span>
+              <ChevronDown size={14} className={`transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {langMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-fade-in">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => selectLanguage(lang.code)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${i18n.language === lang.code ? 'bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                  >
+                    <span className="text-lg">{lang.flag}</span>
+                    <span className={`flex-1 font-medium ${i18n.language === lang.code ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {lang.name}
+                    </span>
+                    {i18n.language === lang.code && (
+                      <Check size={16} className="text-primary-500" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Theme Toggle */}
           <button
@@ -124,24 +177,26 @@ const Header: React.FC = () => {
             className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors outline-none overflow-hidden relative"
             aria-label="Toggle Theme"
           >
-             <div className="relative z-10 group-hover:text-yellow-500 dark:group-hover:text-yellow-400 transition-colors">
+            <div className="relative z-10 group-hover:text-yellow-500 dark:group-hover:text-yellow-400 transition-colors">
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-             </div>
+            </div>
           </button>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
 
-          {/* Sign In / User Button */}
-          {isDashboard ? (
-             <button
-               onClick={() => navigate('/profile')}
-               className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition"
-             >
-               <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                 U
-               </div>
-               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 hidden sm:inline">User</span>
-             </button>
+          {/* User Button (when authenticated) / Sign In (when not) */}
+          {isAuthenticated ? (
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition"
+            >
+              <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 text-xs font-bold">
+                {getUserInitials()}
+              </div>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[100px] truncate">
+                {user?.display_name || 'Profile'}
+              </span>
+            </button>
           ) : (
             <button
               onClick={() => navigate('/signin')}
@@ -158,3 +213,4 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
