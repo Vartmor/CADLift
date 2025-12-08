@@ -36,6 +36,8 @@ __pycache__/
 shap_e_model_cache/
 backend/shap_e_model_cache/
 storage/
+backend/test_outputs/
+vendor/*/pretrained_weights/
 *.db
 *.sqlite
 *.sqlite3
