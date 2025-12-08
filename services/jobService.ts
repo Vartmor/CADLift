@@ -176,6 +176,7 @@ const statusMap: Record<string, JobStatus> = {
   processing: JobStatus.PROCESSING,
   completed: JobStatus.COMPLETED,
   failed: JobStatus.FAILED,
+  cancelled: JobStatus.CANCELLED,
 };
 
 const adaptApiJob = (job: ApiJobEntity): JobRecord => {
@@ -263,6 +264,7 @@ const remoteAdapter = {
     if (typeof data.extrudeHeight === 'number') params.extrude_height = data.extrudeHeight;
     if (data.metadata?.prompt) params.prompt = data.metadata.prompt;
     if (data.metadata?.detail) params.detail = data.metadata.detail;
+    if (data.metadata?.precision_mode) params.precision_mode = data.metadata.precision_mode;
     formData.append('params', JSON.stringify(params));
     const response = await apiFetch('/api/v1/jobs', {
       method: 'POST',
@@ -283,6 +285,15 @@ const remoteAdapter = {
     const response = await apiFetch('/api/v1/jobs');
     const payload = (await response.json()) as ApiJobEntity[];
     return payload.map(adaptApiJob);
+  },
+  async cancelJob(jobId: string): Promise<JobRecord | null> {
+    if (!API_BASE_URL) return null;
+    const response = await apiFetch(`/api/v1/jobs/${jobId}/cancel`, {
+      method: 'POST',
+    });
+    const payload = (await response.json()) as ApiJobEntity;
+    logger.info('Cancelled job via API', payload);
+    return adaptApiJob(payload);
   },
 };
 
@@ -375,5 +386,11 @@ export const jobService = {
       () => remoteAdapter.listJobs(),
       () => listLocalJobs(),
     );
+  },
+
+  async cancelJob(jobId: string): Promise<JobRecord | null> {
+    const job = await remoteAdapter.cancelJob(jobId);
+    if (job) notify(job.job_id);
+    return job;
   }
 };

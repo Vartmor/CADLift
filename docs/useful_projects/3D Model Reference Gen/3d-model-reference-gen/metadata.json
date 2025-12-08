@@ -1,5 +1,0 @@
-{
-  "name": "3D Model Reference Gen",
-  "description": "Generates high-quality 2D reference images for 3D modeling artists using the Gemini Nano Banana Pro model.",
-  "requestFramePermissions": []
-}

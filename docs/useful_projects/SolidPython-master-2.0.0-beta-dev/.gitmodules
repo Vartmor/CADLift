@@ -1,0 +1,6 @@
+[submodule "solid2/libs/BOSL2"]
+	path = solid2/extensions/bosl2/BOSL2
+	url = git@github.com:revarbat/BOSL2.git
+[submodule "solid2/libs/py_scadparser"]
+	path = solid2/libs/py_scadparser
+	url = https://github.com/jeff-dh/py_scadparser.git

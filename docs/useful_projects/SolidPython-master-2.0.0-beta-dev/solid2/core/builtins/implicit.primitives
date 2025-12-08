@@ -1,0 +1,33 @@
+module sphere(r=default, d=default);
+module cube(size=default, center=default, r=default, x=default, y=default, z=default);
+module square(size=default, center=default, r=default, x=default, y=default);
+module cylinder(r=default, h=default, r1=default, r2=default,
+                $fn=default, center=default);
+module circle(r=default, $fn=default);
+module polygon(points, paths=default, r=default);
+
+module union(r=default);
+module difference(r=default);
+module intersection(r=default);
+
+module translate(v=default, x=default, y=default, z=default);
+module scale(v);
+module rotate(a=default, v=default);
+
+module linear_extrude(height=default,
+                      center=default,
+                      twist=default,
+                      scale=default,
+                      translate=default,
+                      r=default);
+
+module pack(size, sep);
+module shell(w);
+
+module rotate_extrude(a=default,
+                      r=default,
+                      translate=default,
+                      rotate=default);
+
+module unit(unit);
+

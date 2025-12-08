@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { JobStatus as StatusEnum } from '../types';
-import { CheckCircle2, Download, AlertCircle, RefreshCw, Cpu, Box, Layers, Eye, MoreVertical, Image as ImageIcon, X } from 'lucide-react';
+import { CheckCircle2, Download, AlertCircle, RefreshCw, Cpu, Box, Layers, Eye, MoreVertical, Image as ImageIcon, X, XCircle } from 'lucide-react';
 import { useJobPolling } from '../hooks/useJobPolling';
 import { Viewer3DModal } from './Viewer3DModal';
+import { jobService } from '../services/jobService';
 
 interface JobStatusProps {
   jobId: string;
@@ -59,7 +60,9 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
   const isProcessing = status === StatusEnum.PROCESSING || status === StatusEnum.PENDING || status === StatusEnum.QUEUED;
   const isCompleted = status === StatusEnum.COMPLETED;
   const isFailed = status === StatusEnum.FAILED;
+  const isCancelled = (job as any)?.error_message === 'Job cancelled by user';
   const pipeline = job?.intent ?? 'cad';
+  const [isCancelling, setIsCancelling] = useState(false);
   const statusHeadingKey = isFailed
     ? 'common.status_failed'
     : isCompleted
@@ -177,6 +180,25 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                   <div className="absolute inset-0 bg-white/30 w-full h-full animate-[shimmer_1s_infinite] -skew-x-12" />
                 </div>
               </div>
+
+              {/* Cancel Button */}
+              <button
+                onClick={async () => {
+                  setIsCancelling(true);
+                  try {
+                    await jobService.cancelJob(jobId);
+                  } catch (e) {
+                    console.error('Cancel failed:', e);
+                  } finally {
+                    setIsCancelling(false);
+                  }
+                }}
+                disabled={isCancelling}
+                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+              >
+                <XCircle size={18} />
+                <span>{isCancelling ? 'Cancelling...' : 'Cancel Job'}</span>
+              </button>
             </div>
           )}
 

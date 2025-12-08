@@ -170,7 +170,26 @@ async def create_job_endpoint(
 
 @router.get("", response_model=list[JobRead])
 async def list_jobs(session: AsyncSession = Depends(deps.get_db)):
-    result = await session.execute(select(Job))
+    from datetime import datetime, timedelta
+    
+    # Auto-cleanup: mark stuck processing jobs as failed (older than 10 minutes)
+    timeout_threshold = datetime.utcnow() - timedelta(minutes=10)
+    stuck_jobs_result = await session.execute(
+        select(Job).where(
+            Job.status.in_(["processing", "queued"]),
+            Job.updated_at < timeout_threshold
+        )
+    )
+    stuck_jobs = stuck_jobs_result.scalars().all()
+    for job in stuck_jobs:
+        job.status = "failed"
+        job.error_message = "Job timed out (stuck for more than 10 minutes)"
+        logger.warning(f"Auto-marked stuck job {job.id} as failed")
+    
+    if stuck_jobs:
+        await session.commit()
+    
+    result = await session.execute(select(Job).order_by(Job.created_at.desc()))
     jobs = result.scalars().all()
     return [serialize_job(job) for job in jobs]
 
@@ -181,4 +200,45 @@ async def get_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    return serialize_job(job)
+
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
+    """Delete a job and its associated files."""
+    result = await session.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Delete associated files
+    files_result = await session.execute(select(FileModel).where(FileModel.job_id == job_id))
+    files = files_result.scalars().all()
+    for file in files:
+        try:
+            storage_service.delete(file.storage_key)
+        except Exception as e:
+            logger.warning(f"Failed to delete file {file.storage_key}: {e}")
+        await session.delete(file)
+    
+    await session.delete(job)
+    await session.commit()
+    logger.info(f"Deleted job {job_id} and {len(files)} associated files")
+
+
+@router.post("/{job_id}/cancel", response_model=JobRead)
+async def cancel_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
+    """Cancel a running or queued job."""
+    result = await session.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.status in ("completed", "failed", "cancelled"):
+        raise HTTPException(status_code=400, detail=f"Job is already {job.status}")
+    
+    job.status = "cancelled"
+    job.error_message = "Job cancelled by user"
+    await session.commit()
+    logger.info(f"Cancelled job {job_id}")
     return serialize_job(job)

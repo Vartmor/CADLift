@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
       extra: (
         <div className="flex flex-wrap gap-2">
           {['DXF', 'DWG'].map((format) => (
-            <span key={format} className="px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/90 border border-white/30">
+            <span key={format} className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
               {format}
             </span>
           ))}
@@ -146,10 +146,10 @@ const Dashboard: React.FC = () => {
       comingSoon: false,
       extra: (
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{t('dashboard.modes.image.optionsLabel')}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('dashboard.modes.image.optionsLabel')}</p>
           <div className="flex flex-wrap gap-2">
             {[t('dashboard.modes.image.option2d'), t('dashboard.modes.image.option3d')].map((option) => (
-              <span key={option} className="px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white/90 border border-white/20">
+              <span key={option} className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
                 {option}
               </span>
             ))}
@@ -169,9 +169,9 @@ const Dashboard: React.FC = () => {
       comingSoon: false,
       extra: (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{t('dashboard.modes.prompt.examplesLabel')}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('dashboard.modes.prompt.examplesLabel')}</p>
           {[t('dashboard.modes.prompt.exampleOne'), t('dashboard.modes.prompt.exampleTwo')].map((example) => (
-            <div key={example} className="flex items-center gap-2 text-white/80 text-sm bg-white/10 rounded-xl px-3 py-2">
+            <div key={example} className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-xl px-3 py-2">
               <CircleDot className="w-3 h-3" />
               <span>{example}</span>
             </div>
@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
     }
   ]), [t]);
 
-  const recentJobs = useMemo<JobRecord[]>(() => jobHistory.slice(0, 4), [jobHistory]);
+  const recentJobs = useMemo<JobRecord[]>(() => jobHistory.slice(0, 10), [jobHistory]);
 
   const quickLinks = useMemo(() => ([
     {
@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
             <div className="p-2 bg-slate-100 dark:bg-slate-800">
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setActiveTab('dxf'); setCurrentJobId(null); }}
+                  onClick={() => { if (activeTab !== 'dxf') { setActiveTab('dxf'); setCurrentJobId(null); } }}
                   className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'dxf'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-[1.02]'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
@@ -448,7 +448,7 @@ const Dashboard: React.FC = () => {
                   <span className="sm:hidden">CAD</span>
                 </button>
                 <button
-                  onClick={() => { setActiveTab('image'); setCurrentJobId(null); }}
+                  onClick={() => { if (activeTab !== 'image') { setActiveTab('image'); setCurrentJobId(null); } }}
                   className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'image'
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-[1.02]'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
@@ -461,7 +461,7 @@ const Dashboard: React.FC = () => {
                   <span className="sm:hidden">Image</span>
                 </button>
                 <button
-                  onClick={() => { setActiveTab('prompt'); setCurrentJobId(null); }}
+                  onClick={() => { if (activeTab !== 'prompt') { setActiveTab('prompt'); setCurrentJobId(null); } }}
                   className={`flex-1 flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'prompt'
                     ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-[1.02]'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'

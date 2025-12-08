@@ -22,6 +22,11 @@ import logging
 logger = logging.getLogger("cadlift.pipeline.image")
 
 async def run(job: Job, session: AsyncSession) -> None:
+    # Helper to update job progress
+    async def update_progress(progress: int) -> None:
+        job.progress = min(100, max(0, progress))
+        await session.commit()
+
     if not job.input_file_id:
         raise CADLiftError(ErrorCode.SYS_FILE_NOT_FOUND, details="Job has no input_file_id")
 
@@ -31,6 +36,7 @@ async def run(job: Job, session: AsyncSession) -> None:
 
     input_path = storage_service.resolve_path(input_file.storage_key)
     logger.info("Processing image job", extra={"job_id": job.id, "input": input_path})
+    await update_progress(5)  # Starting
 
     params = job.params or {}
     ai_metadata: dict | None = None
@@ -144,6 +150,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                     logger.info("Cleared GPU cache before TripoSR")
                 except Exception:
                     pass
+                await update_progress(10)  # GPU cleanup done
                 
                 # Also unload Stable Diffusion if it was loaded from a previous job
                 try:
@@ -158,8 +165,10 @@ async def run(job: Job, session: AsyncSession) -> None:
                 image_bytes = input_path.read_bytes()
                 target_faces = int(max(20000, min(120000, 20000 + float(params.get("detail", 70)) * 800)))
                 
+                await update_progress(20)  # Starting 3D generation
                 logger.info("Starting TripoSR image-to-3D generation")
                 obj_bytes = triposr.generate_from_image(image_bytes)
+                await update_progress(50)  # 3D generation complete
                 logger.info("TripoSR generation complete, converting formats")
                 
                 converter = get_mesh_converter()
@@ -176,6 +185,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                 except Exception as exc:
                     logger.warning(f"Mesh processing skipped: {exc}")
                     processed_glb = glb_bytes
+                await update_progress(70)  # Mesh processing done
                 
                 # Generate all output formats
                 outputs = {
@@ -190,6 +200,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                     outputs["step"] = converter.convert(processed_glb, "glb", "step")
                 except MeshConversionError:
                     outputs["step"] = b""
+                await update_progress(85)  # Format conversion done
                 
                 # Save output files
                 saved_files: dict[str, FileModel] = {}
@@ -243,6 +254,7 @@ async def run(job: Job, session: AsyncSession) -> None:
                 
                 job.params = merged_params
                 job.status = "completed"
+                job.progress = 100  # Complete
                 job.error_code = None
                 job.error_message = None
                 logger.info("Image-to-3D completed successfully")

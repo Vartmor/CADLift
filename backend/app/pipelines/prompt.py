@@ -52,6 +52,267 @@ async def _update_progress(job: Job, session: AsyncSession, progress: int) -> No
     await session.commit()
 
 
+async def _run_precision_cad(job: Job, session: AsyncSession, prompt_text: str, params: dict) -> None:
+    """
+    Run precision CAD generation using SolidPython.
+    
+    This path generates true parametric CAD solids suitable for manufacturing,
+    as opposed to the AI mesh path which produces organic but imprecise shapes.
+    """
+    from app.services.solidpython_service import get_solidpython_service, SolidPythonError
+    from app.services.mesh_converter import get_mesh_converter, MeshConversionError
+    
+    solidpy = get_solidpython_service()
+    
+    if not solidpy.is_available():
+        raise CADLiftError(
+            ErrorCode.AI_SERVICE_UNAVAILABLE,
+            details="SolidPython service not available for precision CAD"
+        )
+    
+    await _update_progress(job, session, 10)
+    
+    # Parse prompt into CAD instructions using LLM
+    logger.info("Parsing prompt for precision CAD instructions")
+    instructions = await _generate_precision_instructions(prompt_text, params)
+    
+    await _update_progress(job, session, 30)
+    
+    # Generate OpenSCAD code and render to STL
+    try:
+        logger.info("Generating precision CAD model")
+        
+        if solidpy.can_render():
+            stl_bytes = solidpy.render_to_stl(instructions)
+            await _update_progress(job, session, 60)
+            
+            # Convert STL to other formats
+            converter = get_mesh_converter()
+            
+            outputs: dict[str, bytes] = {"stl": stl_bytes}
+            
+            # Convert to GLB for viewer
+            try:
+                outputs["glb"] = converter.convert(stl_bytes, "stl", "glb")
+            except MeshConversionError as e:
+                logger.warning(f"GLB conversion failed: {e}")
+            
+            # Convert to STEP for manufacturing
+            try:
+                outputs["step"] = converter.convert(stl_bytes, "stl", "step")
+            except MeshConversionError as e:
+                logger.warning(f"STEP conversion failed: {e}")
+            
+            # Convert to DXF for 2D reference
+            try:
+                outputs["dxf"] = converter.convert(stl_bytes, "stl", "dxf")
+            except MeshConversionError as e:
+                logger.warning(f"DXF conversion failed: {e}")
+            
+            await _update_progress(job, session, 80)
+        else:
+            # No OpenSCAD - just generate SCAD code
+            scad_code = solidpy.generate_scad(instructions)
+            outputs = {"scad": scad_code.encode("utf-8")}
+            logger.warning("OpenSCAD not available - only SCAD code generated")
+            await _update_progress(job, session, 80)
+        
+        # Save output files
+        saved_files: dict[str, FileModel] = {}
+        for fmt, data in outputs.items():
+            if not data:
+                continue
+            
+            role = "output" if fmt in {"glb", "stl", "step"} else "output_aux"
+            filename = f"precision_model.{fmt}"
+            storage_key, size = storage_service.save_bytes(
+                data,
+                role=role,
+                job_id=job.id,
+                filename=filename,
+            )
+            file_rec = FileModel(
+                user_id=job.user_id,
+                job_id=job.id,
+                role=role,
+                storage_key=storage_key,
+                original_name=filename,
+                mime_type=f"application/{fmt}",
+                size_bytes=size,
+            )
+            session.add(file_rec)
+            await session.flush()
+            saved_files[fmt] = file_rec
+        
+        # Set primary output
+        primary = saved_files.get("step") or saved_files.get("glb") or saved_files.get("stl")
+        if primary:
+            job.output_file_id = primary.id
+        
+        # Update job params with file IDs
+        merged_params = dict(params)
+        merged_params["precision_metadata"] = {
+            "pipeline": "solidpython",
+            "instructions": instructions,
+        }
+        for fmt, file_rec in saved_files.items():
+            merged_params[f"{fmt}_file_id"] = file_rec.id
+        
+        job.params = merged_params
+        job.status = "completed"
+        job.progress = 100
+        job.error_code = None
+        job.error_message = None
+        
+        await session.commit()
+        logger.info("Precision CAD generation completed successfully")
+        
+    except SolidPythonError as e:
+        logger.error(f"Precision CAD generation failed: {e}")
+        raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=str(e))
+
+
+async def _generate_precision_instructions(prompt_text: str, params: dict) -> dict:
+    """
+    Parse prompt into SolidPython-compatible CAD instructions.
+    
+    Uses LLM if available, otherwise falls back to heuristic parsing.
+    """
+    # If instructions are already provided, validate and return
+    if "precision_instructions" in params:
+        return params["precision_instructions"]
+    
+    # Try LLM parsing first
+    if llm_service.enabled:
+        try:
+            instructions = await _llm_parse_precision_prompt(prompt_text)
+            return instructions
+        except Exception as e:
+            logger.warning(f"LLM precision parsing failed: {e}, falling back to heuristic")
+    
+    # Heuristic parsing for common patterns
+    return _heuristic_parse_precision_prompt(prompt_text, params)
+
+
+async def _llm_parse_precision_prompt(prompt_text: str) -> dict:
+    """Use LLM to parse prompt into CAD instructions."""
+    system_prompt = """You are a CAD instruction parser. Convert the user's description into a JSON structure for parametric CAD modeling.
+
+Output format:
+{
+  "parts": [
+    {
+      "type": "cube|cylinder|sphere|cone|hole",
+      "size": [width, length, height],  // for cube
+      "radius": number,  // for cylinder/sphere
+      "height": number,  // for cylinder/cone
+      "diameter": number,  // for hole
+      "depth": number,  // for hole
+      "position": [x, y, z],
+      "rotation": [rx, ry, rz],
+      "operation": "union|difference"
+    }
+  ],
+  "units": "mm"
+}
+
+Examples:
+- "A box 100x50x30mm" -> {"parts": [{"type": "cube", "size": [100, 50, 30]}], "units": "mm"}
+- "A cylinder r=20, h=50mm" -> {"parts": [{"type": "cylinder", "radius": 20, "height": 50}], "units": "mm"}
+- "A box with a 6mm hole" -> {"parts": [{"type": "cube", "size": [50, 50, 20]}, {"type": "hole", "diameter": 6, "depth": 25, "position": [0, 0, 0], "operation": "difference"}], "units": "mm"}
+
+Only output valid JSON, no explanation."""
+
+    response = await llm_service.generate_raw(system_prompt, prompt_text)
+    
+    # Parse JSON response
+    import json
+    try:
+        # Try to find JSON in response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            instructions = json.loads(json_match.group())
+            return instructions
+    except json.JSONDecodeError:
+        pass
+    
+    raise CADLiftError(ErrorCode.AI_GENERATION_FAILED, details="Failed to parse LLM response as JSON")
+
+
+def _heuristic_parse_precision_prompt(prompt_text: str, params: dict) -> dict:
+    """Parse prompt using regex patterns for common shapes."""
+    import re
+    
+    parts = []
+    text = prompt_text.lower()
+    
+    # Parse box/cube dimensions
+    box_patterns = [
+        r'(?:box|cube)\s*[:\s]*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)',
+        r'(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*(?:mm|cm|m)?\s*(?:box|cube)?',
+    ]
+    for pattern in box_patterns:
+        match = re.search(pattern, text)
+        if match:
+            w, l, h = float(match.group(1)), float(match.group(2)), float(match.group(3))
+            parts.append({"type": "cube", "size": [w, l, h], "centered": True})
+            break
+    
+    # Parse cylinder
+    cyl_patterns = [
+        r'cylinder\s*(?:r|radius)[=:\s]*(\d+(?:\.\d+)?)[,\s]*(?:h|height)[=:\s]*(\d+(?:\.\d+)?)',
+        r'cylinder\s*(?:d|diameter)[=:\s]*(\d+(?:\.\d+)?)[,\s]*(?:h|height)[=:\s]*(\d+(?:\.\d+)?)',
+    ]
+    for i, pattern in enumerate(cyl_patterns):
+        match = re.search(pattern, text)
+        if match:
+            if i == 0:  # radius pattern
+                r, h = float(match.group(1)), float(match.group(2))
+            else:  # diameter pattern
+                r, h = float(match.group(1)) / 2, float(match.group(2))
+            parts.append({"type": "cylinder", "radius": r, "height": h})
+            break
+    
+    # Parse sphere
+    sphere_match = re.search(r'sphere\s*(?:r|radius)[=:\s]*(\d+(?:\.\d+)?)', text)
+    if sphere_match:
+        r = float(sphere_match.group(1))
+        parts.append({"type": "sphere", "radius": r})
+    
+    # Parse holes
+    hole_patterns = [
+        r'(?:m(\d+)|(\d+(?:\.\d+)?)\s*mm)\s*hole',
+        r'hole\s*(?:d|diameter)?[=:\s]*(\d+(?:\.\d+)?)',
+    ]
+    for pattern in hole_patterns:
+        match = re.search(pattern, text)
+        if match:
+            d = float(match.group(1) or match.group(2) or match.group(3) or 6)
+            # M-hole sizes (metric)
+            if 'm' in text[:match.start()].lower()[-10:]:
+                d = d  # Already metric thread diameter
+            parts.append({
+                "type": "hole",
+                "diameter": d,
+                "depth": 50,  # Default depth
+                "position": [0, 0, 0],
+                "operation": "difference"
+            })
+            break
+    
+    # Default: create a simple cube if nothing parsed
+    if not parts:
+        # Try to extract any dimensions
+        dim_match = re.search(r'(\d+(?:\.\d+)?)', text)
+        if dim_match:
+            size = float(dim_match.group(1))
+            parts.append({"type": "cube", "size": [size, size, size], "centered": True})
+        else:
+            parts.append({"type": "cube", "size": [50, 50, 50], "centered": True})
+    
+    return {"parts": parts, "units": "mm"}
+
 
 async def run(job: Job, session: AsyncSession) -> None:
     params = job.params or {}
@@ -61,6 +322,12 @@ async def run(job: Job, session: AsyncSession) -> None:
 
     logger.info("Processing prompt job", extra={"job_id": job.id})
     await _update_progress(job, session, 5)  # Starting
+
+    # Check for precision CAD mode
+    precision_mode = bool(params.get("precision_mode", False))
+    if precision_mode:
+        logger.info("Precision CAD mode selected", extra={"job_id": job.id})
+        return await _run_precision_cad(job, session, prompt_text, params)
 
     routing = get_routing_service().route(prompt_text)
     logger.info(

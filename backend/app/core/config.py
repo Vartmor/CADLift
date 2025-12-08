@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     stable_diffusion_width: int = 640
     stable_diffusion_steps: int = 30
     stable_diffusion_guidance: float = 7.5
+    
+    # OpenSCAD configuration for precision CAD
+    openscad_path: str | None = None  # Auto-detect if None
+    enable_precision_cad: bool = True
 
     @property
     def cors_origins_list(self) -> List[str]:

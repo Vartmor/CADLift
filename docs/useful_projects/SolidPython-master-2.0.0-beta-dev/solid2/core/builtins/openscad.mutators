@@ -1,0 +1,27 @@
+module translate(v);
+module scale(v);
+module rotate(a=default, v=default);
+module mirror(v);
+module resize(newsize, auto=default);
+
+module color(c, alpha=1.0);
+
+module minkowski();
+module offset(r=default, delta=default, chamfer=default, $fn=default);
+module hull();
+module render(convexity=default);
+
+module linear_extrude(height=default,
+                      center=default,
+                      convexity=default,
+                      twist=default,
+                      slices=default,
+                      scale=default);
+
+module rotate_extrude(angle=default,
+                      convexity=default,
+                      $fn=default);
+
+module projection(cut=default);
+module surface(file, center=default, convexity=default, invert=default);
+
