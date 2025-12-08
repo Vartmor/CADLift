@@ -24,9 +24,8 @@ class TripoSGService:
     def __init__(self) -> None:
         self.repo_path = (
             Path(__file__).parent.parent.parent.parent
-            / "docs"
-            / "useful_projects"
-            / "TripoSG-main"
+            / "vendor"
+            / "triposg"
         )
         self.enabled = False
         if not self.repo_path.exists():

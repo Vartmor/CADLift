@@ -1,4 +1,0 @@
-50a80a7
-tag v8.0.2
-
-single-header version of the library

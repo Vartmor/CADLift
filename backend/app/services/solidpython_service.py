@@ -25,7 +25,7 @@ from typing import Any, Optional
 logger = logging.getLogger("cadlift.services.solidpython")
 
 # Add SolidPython to path
-_solidpython_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "SolidPython-master-2.0.0-beta-dev"
+_solidpython_path = Path(__file__).parent.parent.parent.parent / "vendor" / "solidpython"
 
 SOLIDPYTHON_AVAILABLE = False
 _solid2 = None

@@ -32,7 +32,7 @@ _remove_background = None
 _resize_foreground = None
 
 if os.environ.get("TRIPOSR_DISABLE", "0") != "1":
-    _triposr_path = Path(__file__).parent.parent.parent.parent / "docs" / "useful_projects" / "TripoSR"
+    _triposr_path = Path(__file__).parent.parent.parent.parent / "vendor" / "triposr"
     try:
         import torch as _torch_module
         _torch = _torch_module
