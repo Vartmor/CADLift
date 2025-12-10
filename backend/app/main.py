@@ -36,6 +36,27 @@ async def lifespan(_: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # Eager preload Stable Diffusion in background thread (non-blocking)
+    # This helps detect issues early and warms up the model cache
+    import threading
+    def _preload_sd():
+        try:
+            from app.services.stable_diffusion import preload_stable_diffusion
+            logger.info("Starting Stable Diffusion model preload in background...")
+            success = preload_stable_diffusion(timeout=300)
+            if success:
+                logger.info("Stable Diffusion model preloaded successfully!")
+            else:
+                logger.warning("Stable Diffusion preload failed or disabled - will retry on first use")
+        except Exception as e:
+            logger.error(f"SD preload thread error: {e}")
+    
+    if settings.enable_stable_diffusion:
+        preload_thread = threading.Thread(target=_preload_sd, daemon=True)
+        preload_thread.start()
+    else:
+        logger.info("Stable Diffusion disabled, skipping preload")
+
     yield
 
     logger.info("application_shutdown")

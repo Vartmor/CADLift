@@ -40,7 +40,7 @@ def _build_image_prompt(user_prompt: str) -> str:
         "orthographic front view, 1:1 square frame, whole object in frame."
     )
 
-NEGATIVE_PROMPT = "blurry, lowres, noisy, text, watermark, logo, multiple objects, cropped, clutter, distortion"
+NEGATIVE_PROMPT = "blurry, lowres, noisy, text, watermark, logo, multiple objects, cropped, clutter, distortion, deformed, ugly, bad anatomy, bad proportions, extra limbs, disfigured, out of frame, duplicate, morbid, mutilated, poorly drawn, mutation, long neck, cartoon, anime, drawing, painting, sketch, illustration, 3d render, cgi"
 
 
 logger = logging.getLogger("cadlift.pipeline.prompt")
@@ -372,6 +372,21 @@ async def run(job: Job, session: AsyncSession) -> None:
                 logger.info("Unloading Stable Diffusion to free memory for TripoSR")
                 sd_service.unload()
                 
+                # CRITICAL: Aggressive GPU memory cleanup for 4GB VRAM GPUs
+                import gc
+                import time
+                gc.collect()
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.synchronize()
+                        torch.cuda.empty_cache()
+                        # Brief pause to let GPU memory fully release
+                        time.sleep(0.5)
+                        logger.info("GPU memory cleared successfully")
+                except Exception as mem_err:
+                    logger.warning(f"GPU memory cleanup warning: {mem_err}")
+                
             except StableDiffusionError as exc:
                 logger.warning("Stable Diffusion image generation failed; falling back to OpenAI", extra={"error": str(exc)})
             except Exception as exc:
@@ -510,6 +525,18 @@ async def run(job: Job, session: AsyncSession) -> None:
                     merged_params["obj_file_id"] = saved_files["obj"].id
 
                 job.params = merged_params
+                
+                # Cleanup: Unload TripoSR after successful generation to free GPU for next job
+                try:
+                    triposr.unload()
+                    gc.collect()
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    logger.info("Post-generation GPU memory cleanup complete")
+                except Exception as cleanup_err:
+                    logger.warning(f"Post-generation cleanup warning: {cleanup_err}")
+                
                 return
 
             except (TripoSRError, MeshConversionError, CADLiftError) as exc:

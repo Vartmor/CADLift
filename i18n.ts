@@ -297,7 +297,7 @@ const resources = {
           }
         }
       },
-      about: {
+      aboutLegacy: {
         heading: 'About CADLift',
         description:
           'CADLift transforms your 2D technical drawings into 3D models instantly. Using advanced geometry processing, we bridge the gap between drafting and modeling.',
@@ -596,7 +596,7 @@ const resources = {
         cta: {
           badge: 'Ücretsiz başlayın',
           title: 'Oluşturmaya',
-          titleAccent: 'Hazır',
+          titleAccent: 'Hazır mısın',
           subtitle: 'CAD dosyalarını, görüntüleri veya fikirleri 3D modellere dönüştürün. Kredi kartı gerekmez.',
           button: 'Paneli Aç'
         }
@@ -769,7 +769,7 @@ const resources = {
           }
         }
       },
-      about: {
+      aboutLegacy: {
         heading: 'CADLift Hakkında',
         description:
           'CADLift, 2D teknik çizimlerinizi anında 3D modellere dönüştürür. Gelişmiş geometri işleme teknolojisiyle çizim ve modelleme arasındaki boşluğu kapatıyoruz.',

@@ -77,10 +77,13 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
     setShowRefImage(false);
   }, [jobId]);
 
-  // Get reference image URL from job params
-  const referenceImageId = (job as any)?.metadata?.reference_image_file_id ||
-    (job as any)?.params?.reference_image_file_id ||
-    (job as any)?.params?.output_image_file_id;
+  // Get reference image URL from job params/metadata
+  const jobMeta = (job as any)?.metadata || (job as any)?.params || {};
+  const aiMeta = jobMeta?.ai_metadata || {};
+  const referenceImageId =
+    aiMeta?.reference_image_file_id ||
+    jobMeta?.reference_image_file_id ||
+    jobMeta?.output_image_file_id;
   const referenceImageUrl = referenceImageId ? `/api/v1/files/${referenceImageId}` : null;
 
   // Generate filenames - use 'prompt_model' as default for prompt jobs
