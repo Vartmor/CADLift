@@ -4,6 +4,7 @@ export enum JobStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   QUEUED = 'queued',
+  CANCELLED = 'cancelled',
 }
 
 export enum ConversionMode {

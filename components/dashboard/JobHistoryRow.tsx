@@ -35,6 +35,11 @@ const statusStyles: Record<JobStatus, StatusStyle> = {
         dot: 'bg-slate-400',
         text: 'text-slate-600 dark:text-slate-300',
     },
+    [JobStatus.CANCELLED]: {
+        bg: 'bg-orange-50 dark:bg-orange-900/20',
+        dot: 'bg-orange-500',
+        text: 'text-orange-600 dark:text-orange-400',
+    },
 };
 
 interface JobHistoryRowProps {

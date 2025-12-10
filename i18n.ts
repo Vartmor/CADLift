@@ -49,6 +49,7 @@ const resources = {
         status_completed: 'Conversion Complete!',
         status_failed: 'Conversion Failed',
         status_queued: 'Queued',
+        status_cancelled: 'Cancelled',
         download_btn: 'Download 3D Model',
         start_new: 'Convert Another File',
         processing_step_1: 'Parsing DXF entities...',
@@ -522,6 +523,7 @@ const resources = {
         status_completed: 'Dönüşüm tamamlandı!',
         status_failed: 'Dönüşüm başarısız',
         status_queued: 'Sırada',
+        status_cancelled: 'İptal Edildi',
         download_btn: '3D Modeli İndir',
         start_new: 'Yeni Dosya Dönüştür',
         processing_step_1: 'DXF varlıklar ayrıştırılıyor...',
@@ -994,6 +996,7 @@ const resources = {
         status_completed: 'Konvertierung abgeschlossen!',
         status_failed: 'Konvertierung fehlgeschlagen',
         status_queued: 'In Warteschlange',
+        status_cancelled: 'Abgebrochen',
         download_btn: '3D-Modell herunterladen',
         start_new: 'Weitere Datei konvertieren',
         processing_step_1: 'DXF wird analysiert...',
@@ -1002,59 +1005,75 @@ const resources = {
       },
       navigation: {
         dashboard: 'Dashboard',
-        projects: 'Projekte',
+        projects: 'Meine Projekte',
+        docs: 'Dokumentation',
         resources: 'Ressourcen',
         about: 'Über uns'
       },
       home: {
-        badge: 'KI-gestützte CAD-Konvertierung',
-        headline: 'Verwandle 2D in',
-        headlineHighlight: '3D',
-        headlineEnd: 'sofort',
-        subheadline: 'Laden Sie Ihre DXF-Dateien hoch und sehen Sie, wie sie in Sekunden in produktionsreife 3D-Modelle konvertiert werden.',
-        cta: 'Jetzt starten',
-        secondaryCta: 'Dokumentation',
+        hero: {
+          badge: 'KI-gestützte 3D-Generierung',
+          title1: 'Verwandle',
+          title2: 'Alles',
+          title3: 'in',
+          title4: '3D',
+          subtitle: 'Von',
+          subtitleCad: 'CAD-Dateien',
+          subtitleTo: 'über',
+          subtitleImages: 'Bilder',
+          subtitlePrompts: 'Text-Prompts',
+          subtitleEnd: '— generieren Sie produktionsreife 3D-Modelle in Sekunden.',
+          primaryCta: 'Jetzt erstellen',
+          secondaryCta: 'Funktionen entdecken',
+          inputTypes: {
+            dwg: 'DWG / DXF',
+            images: 'Bilder',
+            prompts: 'KI-Prompts'
+          }
+        },
         features: {
-          title: 'Leistungsstarke Funktionen',
-          subtitle: 'Alles was Sie brauchen, um 2D-Zeichnungen in 3D-Modelle zu verwandeln.',
+          badge: 'Leistungsstarke Funktionen',
+          title: 'Drei Wege zum',
+          titleAccent: 'Erstellen',
+          subtitle: 'Wählen Sie Ihre Eingabemethode. Wir erledigen den Rest.',
           cad: {
-            title: 'DWG/DXF Unterstützung',
-            description: 'Native Unterstützung für AutoCAD-Dateien mit automatischer Wand-, Tür- und Fenstererkennung.'
+            title: 'DWG/DXF zu 3D',
+            description: 'Laden Sie AutoCAD-Dateien direkt hoch. Wir erkennen automatisch Ebenen, Wände und Formen — und extrudieren zu 3D-Modellen.',
+            features: ['Native DWG-Unterstützung via ODA', 'Alle DXF-Versionen', 'Automatische Ebenenerkennung', 'Geschlossene Form-Extrusion']
           },
-          ai: {
-            title: 'KI-Konvertierung',
-            description: 'Verwandeln Sie Bilder und Textbeschreibungen mit fortgeschrittenen KI-Modellen in 3D.'
+          image: {
+            title: 'Bild zu 3D',
+            description: 'Laden Sie beliebige Bilder hoch — Fotos, Skizzen, Render. Unsere KI rekonstruiert sie in 3D mit TripoSR.'
+          },
+          prompt: {
+            title: 'Prompt zu 3D',
+            description: 'Einfach beschreiben. Stable Diffusion generiert ein Bild, dann erstellt TripoSR Ihr 3D-Modell.'
           },
           viewer: {
-            title: 'Integrierter 3D-Viewer',
-            description: 'Vorschau Ihrer Modelle direkt im Browser mit vollem Orbit- und Zoom-Kontrolle.'
+            title: '3D-Viewer',
+            description: 'Vorschau vor dem Download'
           },
           export: {
-            title: 'Multi-Format-Export',
-            description: 'Exportieren Sie in GLB, STL, DXF und STEP für jeden Arbeitsablauf.'
+            title: 'Multi-Format',
+            description: 'GLB, STL, DXF, STEP'
           }
         },
         howItWorks: {
-          title: 'So funktioniert es',
-          subtitle: 'Drei einfache Schritte zur 3D-Konvertierung.',
-          step1: {
-            title: 'Laden Sie Ihre Datei hoch',
-            description: 'Ziehen Sie Ihre DXF/DWG-Datei per Drag & Drop oder wählen Sie sie von Ihrem Computer aus.'
-          },
-          step2: {
-            title: 'Parameter konfigurieren',
-            description: 'Wählen Sie Konvertierungsmodus, Einheiten und Extrusionshöhe.'
-          },
-          step3: {
-            title: '3D-Modell herunterladen',
-            description: 'Laden Sie Ihr produktionsreifes 3D-Modell in mehreren Formaten herunter.'
-          }
+          title: 'So',
+          titleAccent: 'funktioniert es',
+          subtitle: 'Drei einfache Schritte zu 3D',
+          steps: [
+            { title: 'Hochladen oder Beschreiben', description: 'CAD-Datei, Bild oder Prompt eingeben' },
+            { title: 'KI-Verarbeitung', description: 'Unsere Engines erkennen Geometrie und generieren 3D' },
+            { title: 'Ansehen & Herunterladen', description: 'Im 3D-Viewer prüfen, in jedem Format exportieren' }
+          ]
         },
-        cta2: {
-          badge: 'Bereit anzufangen?',
-          title: 'Verwandeln Sie Ihre Designs noch heute',
-          subtitle: 'Schließen Sie sich Tausenden von Ingenieuren und Designern an, die CADLift nutzen.',
-          button: 'Kostenlos loslegen'
+        cta: {
+          badge: 'Kostenlos starten',
+          title: 'Bereit zum',
+          titleAccent: 'Erstellen',
+          subtitle: 'Verwandeln Sie CAD-Dateien, Bilder oder Ideen in 3D-Modelle. Keine Kreditkarte erforderlich.',
+          button: 'Dashboard öffnen'
         }
       },
       resourcesPage: {
@@ -1096,21 +1115,16 @@ const resources = {
           emptyState: {
             title: 'Bereit zu erstellen?',
             subtitle: 'Wählen Sie unten einen Arbeitsablauf, um Ihr erstes 3D-Modell zu starten'
-          }
-        },
-        status: {
-          pending: 'Ausstehend',
-          queued: 'In Warteschlange',
-          processing: 'Wird verarbeitet',
-          completed: 'Abgeschlossen',
-          failed: 'Fehlgeschlagen'
+          },
+          signedInAs: 'Angemeldet als',
+          signOut: 'Abmelden'
         },
         modes: {
           title: 'Konvertierungsmodi',
-          subtitle: 'Wählen Sie den Arbeitsablauf, der zu Ihrer Eingabe passt.',
+          subtitle: 'Wählen Sie den Arbeitsablauf, der zu Ihrer Eingabe passt. Sprache und Design werden automatisch übernommen.',
           cad: {
             title: 'AutoCAD 2D → 3D Konvertierung',
-            description: 'Laden Sie DXF/DWG-Zeichnungen hoch und extrudieren Sie automatisch architektonische oder mechanische Körper.',
+            description: 'Laden Sie DXF/DWG-Zeichnungen hoch und extrudieren Sie automatisch saubere architektonische oder mechanische Körper.',
             badge: 'DXF / DWG',
             cta: 'CAD-Datei hochladen'
           },
@@ -1126,18 +1140,120 @@ const resources = {
             title: 'Text-Prompt zu 2D/3D',
             description: 'Beschreiben Sie, was Sie brauchen, und lassen Sie CADLift die Geometrie automatisch erstellen.',
             examplesLabel: 'Prompt-Ideen',
-            cta: 'Prompt schreiben'
-          }
+            exampleOne: 'Zeichne einen 3x4m Raum mit einem Südfenster.',
+            exampleTwo: 'Erzeuge einen leichten L-Winkel mit zwei M6-Bohrungen.',
+            cta: 'Prompt-Generierung starten'
+          },
+          comingSoon: 'Demnächst',
+          betaLabel: 'Beta'
         },
         recent: {
           title: 'Letzte Aktivität',
-          empty: 'Keine Konvertierungen bisher. Starten Sie Ihre erste!',
-          viewAll: 'Alle anzeigen'
+          subtitle: 'Verfolgen Sie vergangene Aufträge, laden Sie Ergebnisse herunter oder wiederholen Sie fehlgeschlagene Jobs.',
+          empty: 'Noch keine Jobs. Starten Sie eine Konvertierung, um diese Zeitleiste zu füllen.',
+          table: {
+            type: 'Job-Typ',
+            input: 'Eingabe',
+            output: 'Ausgabe',
+            status: 'Status',
+            created: 'Erstellt',
+            actions: 'Aktionen'
+          },
+          action: {
+            view: 'Ansehen',
+            download: 'Herunterladen',
+            retry: 'Wiederholen'
+          },
+          time_two_hours: 'Vor 2 Stunden',
+          time_ten_minutes: 'Vor 10 Minuten',
+          time_yesterday: 'Gestern',
+          time_just_now: 'Gerade eben'
         },
-        actions: {
-          view3d: 'In 3D ansehen',
-          download: 'Herunterladen',
-          delete: 'Löschen'
+        quickLinks: {
+          title: 'Ressourcen',
+          subtitle: 'Anleitungen, Dokumentation und Support für Ihren Fortschritt.',
+          documentation: {
+            title: 'Dokumentation',
+            description: 'REST-Endpunkte, Webhooks und Payload-Schemas.'
+          },
+          tutorials: {
+            title: 'Tutorial-Videos',
+            description: 'Schritt-für-Schritt-Anleitungen auf EN und DE.'
+          },
+          faq: {
+            title: 'FAQ',
+            description: 'Limits, unterstützte Formate und Fehlerbehebung.'
+          },
+          support: {
+            title: 'Community & Support',
+            description: 'Treten Sie dem Forum bei oder eröffnen Sie ein Support-Ticket.'
+          }
+        },
+        workspace: {
+          title: 'Konvertierungs-Arbeitsbereich',
+          subtitle: 'Laden Sie eine DXF hoch, legen Sie Extrusionsparameter fest und verfolgen Sie den Fortschritt in Echtzeit.',
+          statusReady: 'System bereit. Warte auf Eingabe...'
+        },
+        quickStart: {
+          title: 'Schnellstart',
+          description: 'Starten Sie einen Arbeitsablauf mit einem Klick oder nutzen Sie Tastenkürzel.',
+          actions: {
+            uploadCad: 'CAD hochladen',
+            uploadImage: 'Bild hochladen',
+            startPrompt: 'Prompt starten'
+          }
+        },
+        tips: {
+          title: 'Onboarding-Tipps',
+          upload: 'Laden Sie eine CAD-Datei hoch, um die klassische 2D → 3D Extrusion zu starten.',
+          prompt: 'Probieren Sie den Prompt-Generator für textbasierte Erkundungen.',
+          dismiss: 'Verstanden'
+        },
+        imageForm: {
+          title: 'Bild zu CAD Arbeitsablauf',
+          description: 'Verwandeln Sie Skizzen, Scans oder Produktfotos in Vektorpläne oder Meshes.',
+          uploadLabel: 'Bild ablegen oder durchsuchen',
+          uploadHint: 'Unterstützt: PNG, JPG, SVG bis 25MB',
+          pickButton: 'Bild auswählen',
+          option2d: {
+            title: 'Vektor 2D-Ausgabe',
+            desc: 'Erzeugt saubere DXF-Kurven und Ebenen.'
+          },
+          option3d: {
+            title: '3D-Mesh-Ausgabe',
+            desc: 'Erstellt wasserdichte Meshes für CAD-Apps.'
+          },
+          notesLabel: 'Notizen',
+          notesPlaceholder: 'Geben Sie Informationen zu Maßstab, Einheiten oder gewünschtem Detailgrad an.',
+          submit: 'Aus Bild generieren',
+          submitLoading: 'Bild wird verarbeitet...',
+          errors: {
+            unsupported: 'Nicht unterstützter Dateityp. Bitte PNG/JPG/SVG verwenden.',
+            tooLarge: 'Bild überschreitet 25MB-Limit.',
+            required: 'Bitte fügen Sie ein Bild hinzu, um fortzufahren.'
+          }
+        },
+        promptForm: {
+          title: 'Prompt zu Geometrie',
+          description: 'Beschreiben Sie den Raum oder das Teil. CADLift erstellt Schleifen und Körper.',
+          promptLabel: 'Was sollen wir zeichnen?',
+          placeholder: 'z.B. Zylindrischer Adapter mit 50mm Durchmesser und zwei Schraubenmustern...',
+          option2d: {
+            title: '2D-Entwurf',
+            desc: 'Gibt DXF-Linien und -Bögen zur Überprüfung aus.'
+          },
+          option3d: {
+            title: '3D-Konzept',
+            desc: 'Gibt leichte STEP-Meshes aus.'
+          },
+          detailLabel: 'Detailstufe',
+          detailLow: 'Grob',
+          detailHigh: 'Präzise',
+          submit: 'Objekt generieren',
+          submitLoading: 'Wird generiert...',
+          errors: {
+            required: 'Bitte beschreiben Sie, was Sie benötigen.'
+          }
         }
       },
       auth: {

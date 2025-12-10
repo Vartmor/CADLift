@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Keyboard, PenLine } from 'lucide-react';
+import { Sparkles, Cog, Ruler, Keyboard, ArrowRight } from 'lucide-react';
 import { ConversionMode, Unit, UploadFormData } from '../types';
 
 interface PromptWorkflowFormProps {
@@ -8,14 +8,128 @@ interface PromptWorkflowFormProps {
   onSuccess?: () => void;
 }
 
+type GenerationMode = 'creative_3d' | 'precision_3d' | 'precision_2d';
+
+interface ModeConfig {
+  id: GenerationMode;
+  icon: React.ReactNode;
+  title: string;
+  tagline: string;
+  description: string;
+  placeholder: string;
+  examples: string[];
+  outputLabel: string;
+  conversionMode: ConversionMode;
+  is3D: boolean;
+  // Color classes
+  iconBg: string;
+  iconBgSelected: string;
+  borderSelected: string;
+  bgSelected: string;
+  descBg: string;
+  descBorder: string;
+  descText: string;
+  buttonBg: string;
+  pillBg: string;
+  pillHover: string;
+}
+
+const MODE_CONFIGS: ModeConfig[] = [
+  {
+    id: 'creative_3d',
+    icon: <Sparkles className="w-5 h-5" />,
+    title: 'Creative 3D',
+    tagline: 'Imagine it',
+    description: 'AI generates organic 3D models from your description. Best for artistic objects, furniture, products.',
+    placeholder: 'A modern ergonomic office chair with mesh back...',
+    examples: [
+      'A sleek smartphone',
+      'Modern table lamp',
+      'Ergonomic mouse',
+      'Decorative vase'
+    ],
+    outputLabel: 'creative_model.glb',
+    conversionMode: ConversionMode.PROMPT_TO_3D,
+    is3D: true,
+    // Purple theme
+    iconBg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+    iconBgSelected: 'bg-purple-500 text-white',
+    borderSelected: 'border-purple-500',
+    bgSelected: 'bg-purple-50 dark:bg-purple-900/20',
+    descBg: 'bg-purple-50 dark:bg-purple-900/20',
+    descBorder: 'border-purple-100 dark:border-purple-800/50',
+    descText: 'text-purple-700 dark:text-purple-300',
+    buttonBg: 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600',
+    pillBg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700',
+    pillHover: 'hover:bg-purple-200 dark:hover:bg-purple-800/50',
+  },
+  {
+    id: 'precision_3d',
+    icon: <Cog className="w-5 h-5" />,
+    title: 'Precision 3D',
+    tagline: 'Engineer it',
+    description: 'Exact parametric CAD parts with precise dimensions. Best for mechanical parts, boxes, cylinders.',
+    placeholder: 'A box 100x50x30mm with a 6mm hole in the center...',
+    examples: [
+      'A box 100x50x30mm',
+      'Cylinder r=20, h=50mm',
+      'Sphere radius 25mm',
+      'Box with M6 hole'
+    ],
+    outputLabel: 'precision_part.step',
+    conversionMode: ConversionMode.PROMPT_TO_3D,
+    is3D: true,
+    // Blue theme
+    iconBg: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400',
+    iconBgSelected: 'bg-sky-500 text-white',
+    borderSelected: 'border-sky-500',
+    bgSelected: 'bg-sky-50 dark:bg-sky-900/20',
+    descBg: 'bg-sky-50 dark:bg-sky-900/20',
+    descBorder: 'border-sky-100 dark:border-sky-800/50',
+    descText: 'text-sky-700 dark:text-sky-300',
+    buttonBg: 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600',
+    pillBg: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-700',
+    pillHover: 'hover:bg-sky-200 dark:hover:bg-sky-800/50',
+  },
+  {
+    id: 'precision_2d',
+    icon: <Ruler className="w-5 h-5" />,
+    title: 'Precision 2D',
+    tagline: 'Draft it',
+    description: 'Technical drawings & floor plans with accurate dimensions. DXF output for CAD software.',
+    placeholder: 'A 5x4m living room with a door on the south wall...',
+    examples: [
+      'A 5x4m living room',
+      '3x3m bedroom with door',
+      'Office 8x6m',
+      '4x3m bathroom'
+    ],
+    outputLabel: 'floor_plan.dxf',
+    conversionMode: ConversionMode.PROMPT_TO_2D,
+    is3D: false,
+    // Emerald/Teal theme
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+    iconBgSelected: 'bg-emerald-500 text-white',
+    borderSelected: 'border-emerald-500',
+    bgSelected: 'bg-emerald-50 dark:bg-emerald-900/20',
+    descBg: 'bg-emerald-50 dark:bg-emerald-900/20',
+    descBorder: 'border-emerald-100 dark:border-emerald-800/50',
+    descText: 'text-emerald-700 dark:text-emerald-300',
+    buttonBg: 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600',
+    pillBg: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700',
+    pillHover: 'hover:bg-emerald-200 dark:hover:bg-emerald-800/50',
+  },
+];
+
 const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuccess }) => {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<'2d' | '3d'>('3d');
-  const [generationMode, setGenerationMode] = useState<'creative' | 'precision'>('creative');
-  const [detail] = useState(100); // always max detail for prompts
+  const [selectedMode, setSelectedMode] = useState<GenerationMode>('creative_3d');
+  const [detail] = useState(100);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const currentConfig = MODE_CONFIGS.find(m => m.id === selectedMode)!;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,21 +140,21 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
     setIsSubmitting(true);
     setError(null);
     try {
-      // Backend requires extrude_height between 100mm and 100000mm
-      const extrudeHeight = mode === '3d' ? 3000 : 100;
+      const extrudeHeight = currentConfig.is3D ? 3000 : 100;
       await onCreate({
         file: null,
-        mode: mode === '2d' ? ConversionMode.PROMPT_TO_2D : ConversionMode.PROMPT_TO_3D,
+        mode: currentConfig.conversionMode,
         unit: Unit.MM,
         extrudeHeight,
         intent: 'prompt',
         inputLabel: `"${prompt.trim().slice(0, 40)}${prompt.length > 40 ? '…' : ''}"`,
-        outputLabel: mode === '2d' ? 'prompt_sketch.dxf' : 'prompt_model.step',
+        outputLabel: currentConfig.outputLabel,
         notes: `${t('dashboard.promptForm.detailLabel')}: ${detail}`,
         metadata: {
           prompt,
           detail,
-          precision_mode: generationMode === 'precision'
+          precision_mode: selectedMode !== 'creative_3d',
+          generation_mode: selectedMode,
         },
       });
       if (onSuccess) onSuccess();
@@ -52,141 +166,95 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      {/* Generation Mode Toggle */}
-      <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-        <button
-          type="button"
-          onClick={() => setGenerationMode('creative')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${generationMode === 'creative'
-            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-            : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700'
-            }`}
-        >
-          <span>🎨</span>
-          <span>Creative (AI Mesh)</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setGenerationMode('precision')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${generationMode === 'precision'
-            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-            : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700'
-            }`}
-        >
-          <span>🔧</span>
-          <span>Precision (CAD)</span>
-        </button>
+      {/* Mode Selection */}
+      <div>
+        <label className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 mb-3 block">
+          Generation Mode
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {MODE_CONFIGS.map((config) => {
+            const isSelected = selectedMode === config.id;
+            return (
+              <button
+                key={config.id}
+                type="button"
+                onClick={() => setSelectedMode(config.id)}
+                className={`p-4 rounded-2xl border-2 text-left transition-all ${isSelected
+                    ? `${config.borderSelected} shadow-lg ${config.bgSelected}`
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1.5 rounded-lg transition-colors ${isSelected ? config.iconBgSelected : config.iconBg
+                    }`}>
+                    {config.icon}
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {config.title}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                  "{config.tagline}"
+                </p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Mode Description */}
-      <div className={`p-3 rounded-xl text-sm ${generationMode === 'creative'
-        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
-        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-        }`}>
-        {generationMode === 'creative'
-          ? '✨ AI generates organic 3D shapes from your description. Best for artistic objects, furniture, products.'
-          : '📐 Parametric CAD from dimensions. Best for precise mechanical parts, boxes, cylinders, holes.'}
+      {/* Mode Description - Color-coded */}
+      <div className={`p-4 rounded-2xl border transition-colors ${currentConfig.descBg} ${currentConfig.descBorder}`}>
+        <p className={`text-sm ${currentConfig.descText}`}>
+          {currentConfig.description}
+        </p>
       </div>
 
-      <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5">
-        <label className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+      {/* Prompt Input */}
+      <div>
+        <label className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-2">
           <Keyboard size={14} />
           {t('dashboard.promptForm.promptLabel')}
         </label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          rows={5}
-          className="mt-2 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-4 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          placeholder={generationMode === 'precision'
-            ? 'e.g., "A box 100x50x30mm with a 6mm hole in the center"'
-            : t('dashboard.promptForm.placeholder') ?? ''}
+          rows={4}
+          className={`w-full rounded-2xl border-2 bg-white dark:bg-slate-900 p-4 text-sm text-slate-700 dark:text-slate-200 focus:outline-none transition-colors border-slate-200 dark:border-slate-700 focus:${currentConfig.borderSelected}`}
+          placeholder={currentConfig.placeholder}
         />
-        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-500 font-semibold">{error}</p>}
       </div>
 
-      {/* 2D/3D toggle for both modes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => setMode('2d')}
-          className={`p-4 rounded-2xl border text-left transition-all ${mode === '2d'
-            ? 'border-primary-500 shadow-lg bg-primary-50 dark:bg-primary-900/20'
-            : 'border-slate-200 dark:border-slate-700'
-            }`}
-        >
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {generationMode === 'precision' ? '📐 2D Floor Plan' : t('dashboard.promptForm.option2d.title')}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {generationMode === 'precision'
-              ? 'DXF output with room outlines and dimensions'
-              : t('dashboard.promptForm.option2d.desc')}
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('3d')}
-          className={`p-4 rounded-2xl border text-left transition-all ${mode === '3d'
-            ? 'border-primary-500 shadow-lg bg-primary-50 dark:bg-primary-900/20'
-            : 'border-slate-200 dark:border-slate-700'
-            }`}
-        >
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {generationMode === 'precision' ? '🔩 3D Mechanical Part' : t('dashboard.promptForm.option3d.title')}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {generationMode === 'precision'
-              ? 'STEP/STL output with exact dimensions'
-              : t('dashboard.promptForm.option3d.desc')}
-          </p>
-        </button>
-      </div>
-
-      {/* Precision mode examples - different for 2D vs 3D */}
-      {generationMode === 'precision' && (
-        <div className="space-y-2">
-          <p className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400">
-            Example prompts:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {(mode === '2d' ? [
-              'A 5x4m living room',
-              '3x3m bedroom with door on south wall',
-              'Office 8x6m with 2 windows',
-              '4x3m bathroom'
-            ] : [
-              'A box 100x50x30mm',
-              'Cylinder r=20, h=50mm',
-              'Sphere radius 25mm',
-              'Box with M6 hole'
-            ]).map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => setPrompt(example)}
-                className="text-left p-2 text-xs bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300"
-              >
-                "{example}"
-              </button>
-            ))}
-          </div>
+      {/* Example Prompts - Color-coded pills */}
+      <div>
+        <label className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 mb-2 block">
+          Quick Examples
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {currentConfig.examples.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => setPrompt(example)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${currentConfig.pillBg} ${currentConfig.pillHover}`}
+            >
+              {example}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
+      {/* Submit Button - Color-coded */}
       <button
         type="submit"
-        disabled={isSubmitting}
-        className={`w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-white font-bold shadow-xl hover:scale-[1.01] transition disabled:opacity-50 ${generationMode === 'precision'
-          ? 'bg-gradient-to-r from-blue-600 to-cyan-600'
-          : 'bg-slate-900 dark:bg-white dark:text-slate-900'
-          }`}
+        disabled={isSubmitting || !prompt.trim()}
+        className={`w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-white font-bold shadow-xl hover:scale-[1.01] transition disabled:opacity-50 ${currentConfig.buttonBg}`}
       >
+        {currentConfig.icon}
         {isSubmitting
           ? t('dashboard.promptForm.submitLoading')
-          : generationMode === 'precision'
-            ? 'Generate Precision CAD'
-            : t('dashboard.promptForm.submit')}
+          : `Generate ${currentConfig.title}`}
+        {!isSubmitting && <ArrowRight size={18} />}
       </button>
     </form>
   );

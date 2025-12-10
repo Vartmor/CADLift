@@ -245,6 +245,11 @@ const Dashboard: React.FC = () => {
       dot: 'bg-slate-400',
       text: 'text-slate-600 dark:text-slate-300'
     },
+    [JobState.CANCELLED]: {
+      bg: 'bg-orange-50 dark:bg-orange-900/20',
+      dot: 'bg-orange-500',
+      text: 'text-orange-600 dark:text-orange-400'
+    },
   };
 
   const statusLabels: Record<JobState, string> = {
@@ -253,6 +258,7 @@ const Dashboard: React.FC = () => {
     [JobState.PENDING]: t('common.status_pending'),
     [JobState.FAILED]: t('common.status_failed'),
     [JobState.QUEUED]: t('common.status_queued'),
+    [JobState.CANCELLED]: t('common.status_cancelled'),
   };
 
   const jobIntentLabel = (job: JobRecord) => {
