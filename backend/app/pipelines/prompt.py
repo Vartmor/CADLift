@@ -185,7 +185,15 @@ async def _generate_precision_instructions(prompt_text: str, params: dict) -> di
     # Try LLM parsing first
     if llm_service.enabled:
         try:
-            instructions = await _llm_parse_precision_prompt(prompt_text)
+            # Use the advanced instruction generator from LLM service
+            # This supports robust schema validation and complex shapes (threads, sweeps)
+            instructions = await llm_service.generate_instructions(prompt_text)
+            
+            # Normalize 'shapes' to 'parts' if needed for downstream compatibility
+            # (though SolidPythonService now supports 'shapes' alias)
+            if "shapes" in instructions and "parts" not in instructions:
+                instructions["parts"] = instructions["shapes"]
+                
             return instructions
         except Exception as e:
             logger.warning(f"LLM precision parsing failed: {e}, falling back to heuristic")
@@ -194,50 +202,7 @@ async def _generate_precision_instructions(prompt_text: str, params: dict) -> di
     return _heuristic_parse_precision_prompt(prompt_text, params)
 
 
-async def _llm_parse_precision_prompt(prompt_text: str) -> dict:
-    """Use LLM to parse prompt into CAD instructions."""
-    system_prompt = """You are a CAD instruction parser. Convert the user's description into a JSON structure for parametric CAD modeling.
 
-Output format:
-{
-  "parts": [
-    {
-      "type": "cube|cylinder|sphere|cone|hole",
-      "size": [width, length, height],  // for cube
-      "radius": number,  // for cylinder/sphere
-      "height": number,  // for cylinder/cone
-      "diameter": number,  // for hole
-      "depth": number,  // for hole
-      "position": [x, y, z],
-      "rotation": [rx, ry, rz],
-      "operation": "union|difference"
-    }
-  ],
-  "units": "mm"
-}
-
-Examples:
-- "A box 100x50x30mm" -> {"parts": [{"type": "cube", "size": [100, 50, 30]}], "units": "mm"}
-- "A cylinder r=20, h=50mm" -> {"parts": [{"type": "cylinder", "radius": 20, "height": 50}], "units": "mm"}
-- "A box with a 6mm hole" -> {"parts": [{"type": "cube", "size": [50, 50, 20]}, {"type": "hole", "diameter": 6, "depth": 25, "position": [0, 0, 0], "operation": "difference"}], "units": "mm"}
-
-Only output valid JSON, no explanation."""
-
-    response = await llm_service.generate_raw(system_prompt, prompt_text)
-    
-    # Parse JSON response
-    import json
-    try:
-        # Try to find JSON in response
-        import re
-        json_match = re.search(r'\{[\s\S]*\}', response)
-        if json_match:
-            instructions = json.loads(json_match.group())
-            return instructions
-    except json.JSONDecodeError:
-        pass
-    
-    raise CADLiftError(ErrorCode.AI_GENERATION_FAILED, details="Failed to parse LLM response as JSON")
 
 
 def _heuristic_parse_precision_prompt(prompt_text: str, params: dict) -> dict:
