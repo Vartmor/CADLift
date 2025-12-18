@@ -259,10 +259,181 @@ class LLMService:
         logger.info("LLM parsed prompt", extra={"provider": self.provider, "model": self.model})
         return parsed
 
+    async def generate_from_image(self, image_bytes: bytes, prompt_text: str | None = None) -> dict[str, Any]:
+        """
+        Generate CAD instructions from an image (Blueprint/Technical Drawing).
+        
+        Args:
+            image_bytes: Raw image data
+            prompt_text: Optional user prompt to exact specific details
+            
+        Returns:
+            Validated instruction dictionary (shapes or rooms)
+        """
+        if not self.enabled:
+            raise RuntimeError("LLM service not enabled")
+            
+        import base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        
+        if self.provider == "openai":
+            return await self._call_openai_vision(base64_image, prompt_text)
+            
+        raise ValueError(f"Provider {self.provider} does not support vision capability")
 
+    async def _call_openai_vision(self, base64_image: str, user_prompt: str | None) -> dict[str, Any]:
+        """Call OpenAI Vision API."""
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        system_prompt = (
+            "You are an expert Mechanical Engineer and CAD Designer. "
+            "Your task is to analyze technical drawings (blueprints) and extract precise geometric construction instructions.\n\n"
+            "OUTPUT SCHEMA (JSON):\n"
+            "Return a JSON object describing the PART or FLOOR PLAN seen in the image.\n"
+            "Choose schema based on image content:\n"
+            "1. MECHANICAL PART (Brackets, gears, manufacturing parts):\n"
+            "{\n"
+            "  \"shapes\": [\n"
+            "    {\"type\": \"box\", \"width\": 100, \"length\": 50, \"height\": 20, \"fillet\": 5},\n"
+            "    {\"type\": \"cylinder\", \"radius\": 10, \"height\": 20, \"operation\": \"diff\", \"position\": [0,0]}, \n"
+            "    {\"type\": \"polygon\", \"vertices\": [[-50,-20],[50,-20],[50,20],[-50,20]], \"height\": 10, \"operation\": \"union\"}\n"
+            "  ],\n"
+            "  \"extrude_height\": 20,\n"
+            "  \"units\": \"mm\"\n"
+            "}\n"
+            "- USE BOOLEAN OPERATIONS: Build the object by adding ('union') bodies and cutting ('diff') holes.\n"
+            "- Look for DIMENSIONS in the image (e.g., '38', 'R30', '├ÿ15'). Use these EXACT values.\n"
+            "- 'operation': 'union' (default) or 'diff' (to cut holes/slots from previous shapes).\n"
+            "- Align the main body center at [0,0].\n"
+            "- For U-brackets or irregular profiles, use ONE 'polygon' shape for the main body if possible, then cut holes.\n"
+            "- DO NOT use 'wall_thickness' for solid parts. Use 0.\n\n"
+            "2. FLOOR PLAN (Architectural):\n"
+            "{\n"
+            "  \"rooms\": [ ... ], \n"
+            "  \"wall_thickness\": 200,\n"
+            "  \"extrude_height\": 3000\n"
+            "}\n\n"
+            "CRITICAL RULES:\n"
+            "- ACCURACY: Use the exact numbers written on the blueprint. If a number is '30', use 30.0.\n"
+            "- INFERENCE: If a dimension is missing, estimate proportionally based on known dimensions.\n"
+            "- OUTPUT: Raw JSON only. No markdown formatting."
+        )
+        
+        user_content = [
+            {"type": "text", "text": user_prompt or "Analyze this technical drawing and extract the geometry."}
+        ]
+        
+        # Add image
+        user_content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_image}"
+            }
+        })
+
+        body = {
+            "model": "gpt-4o",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.1, # Low temperature for precision
+            "response_format": {"type": "json_object"},
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client: # Longer timeout for image analysis
+            response = await client.post(url, headers=headers, json=body)
+            response.raise_for_status()
+            data = response.json()
+            
+        try:
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            self._validate_llm_response(parsed)
+            return parsed
+        except Exception as exc:
+             logger.warning(f"Vision analysis failed: {exc}", extra={"response": data})
+             raise ValueError("Failed to parse vision response") from exc
+
+    async def describe_image(self, image_bytes: bytes, prompt_text: str | None = None) -> str:
+        """
+        Generate a text description (CAD prompt) from an image.
+        Used for the Unified Image-to-Precision pipeline.
+        """
+        if not self.enabled:
+             raise RuntimeError("LLM service not enabled")
+            
+        import base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        
+        if self.provider == "openai":
+            return await self._call_openai_vision_text(base64_image, prompt_text)
+            
+        raise ValueError(f"Provider {self.provider} does not support vision capability")
+
+    async def _call_openai_vision_text(self, base64_image: str, user_prompt: str | None) -> str:
+        """Call OpenAI Vision API and return text description."""
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        system_prompt = (
+            "You are an expert Mechanical Engineer and CAD Designer. "
+            "Your task is to analyze technical drawings (blueprints) and write a precise, step-by-step CAD instruction prompt.\n\n"
+            "GOAL: Convert the visual drawing into a text description that another AI can use to generate 3D code.\n"
+            "FORMAT: A numbered list of geometric operations.\n\n"
+            "EXAMPLE OUTPUT:\n"
+            "Create a mounting bracket.\n"
+            "1. The base is a box with width 100mm, length 60mm, and height 10mm.\n"
+            "2. In the center, add a vertical cylinder with radius 20mm and height 40mm.\n"
+            "3. Cut a 10mm hole (cylinder) through the center of the vertical cylinder.\n"
+            "4. Cut two 5mm screw holes in the base, positioned at [-35, 0] and [35, 0].\n\n"
+            "RULES:\n"
+            "- Be precise with numbers found in the image.\n"
+            "- Use 'Add' for unions and 'Cut' for differences/holes.\n"
+            "- Specify positions relative to the center [0,0] if possible.\n"
+            "- Return ONLY the text description. Do not wrap in JSON."
+        )
+        
+        user_content = [
+            {"type": "text", "text": user_prompt or "Analyze this blueprint and write a CAD generation prompt."}
+        ]
+        user_content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+        })
+
+        body = {
+            "model": "gpt-4o",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            "max_tokens": 1024,
+            "temperature": 0.1,
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(url, headers=headers, json=body)
+            response.raise_for_status()
+            data = response.json()
+            
+        try:
+            return data["choices"][0]["message"]["content"]
+        except Exception as exc:
+             logger.warning(f"Vision text analysis failed: {exc}", extra={"response": data})
+             raise ValueError("Failed to parse vision response") from exc
 llm_service = LLMService(
     provider=getattr(settings, "llm_provider", "none"),
     api_key=getattr(settings, "openai_api_key", None),
     timeout_seconds=getattr(settings, "llm_timeout_seconds", 30.0),
     model=getattr(settings, "openai_model", "gpt-4o-mini"),
 )
+

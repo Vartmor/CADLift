@@ -480,145 +480,139 @@ def build_step_solid_multistory(
         raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=f"Failed to generate multi-story STEP: {e}") from e
 
 
-def build_step_solid(polygons: Iterable[list[list[float]]], height: float, wall_thickness: float = 0.0, openings: list[dict] = None) -> bytes:
+def build_step_solid_multistory(
+    floors: list[dict],
+    wall_thickness: float = 0.0,
+    openings: list[dict] = None
+) -> bytes:
     """
-    Generate real STEP solid from polygons using cadquery/OpenCASCADE.
-
-    Supports both solid extrusions and hollow rooms with wall thickness.
-    Phase 6.2: Supports cutting door/window openings from walls.
-
-    Args:
-        polygons: List of polygons, each polygon is a list of [x, y] coordinates
-        height: Extrusion height in millimeters
-        wall_thickness: Wall thickness in millimeters (default: 0 = solid extrusion)
-                       If > 0, creates hollow rooms by offsetting polygons inward
-        openings: List of door/window openings to cut from walls (Phase 6.2)
-
-    Returns:
-        bytes: Valid ISO 10303-21 STEP file content
-
-    Raises:
-        ValueError: If polygons are invalid or empty
+    Generate multi-story STEP solid with proper Z-stacking (Phase 6.3).
     """
-    polygon_list = list(polygons)
+    if not floors:
+        raise CADLiftError(ErrorCode.GEO_NO_POLYGONS, details="No floors provided for multi-story generation")
 
-    if not polygon_list:
-        raise CADLiftError(ErrorCode.GEO_NO_POLYGONS, details="No polygons provided for STEP generation")
-
-    if height <= 0:
-        raise CADLiftError(ErrorCode.GEO_INVALID_HEIGHT, details=f"Invalid extrusion height: {height}mm. Must be positive.")
+    if wall_thickness < 0:
+        raise CADLiftError(ErrorCode.GEO_INVALID_WALL_THICKNESS, details=f"Invalid wall thickness: {wall_thickness}mm")
 
     if openings is None:
         openings = []
 
-    if wall_thickness < 0:
-        raise CADLiftError(ErrorCode.GEO_INVALID_WALL_THICKNESS, details=f"Invalid wall thickness: {wall_thickness}mm. Must be non-negative.")
-
     try:
-        # Helper function to create a single polygon solid (with optional wall thickness)
-        def create_polygon_solid(poly: list[list[float]]) -> cq.Workplane:
-            """Create solid or hollow extrusion from a polygon."""
-            if len(poly) < 3:
-                raise CADLiftError(ErrorCode.GEO_INVALID_POLYGON, details=f"Polygon must have at least 3 points, got {len(poly)}")
+        # Helper function to create floor solid at specific Z height
+        def create_floor_solid(
+            polygons: list[list[list[float]]],
+            height: float,
+            z_offset: float,
+            floor_openings: list[dict]
+        ) -> cq.Workplane:
+            """Create a single floor solid with vertical offset."""
+            if not polygons:
+                raise CADLiftError(ErrorCode.GEO_NO_POLYGONS, details="Floor has no polygons")
 
-            # Create outer solid
-            outer = (
-                cq.Workplane("XY")
-                .polyline([(p[0], p[1]) for p in poly])
-                .close()
-                .extrude(height)
-            )
+            # Helper to create single polygon solid
+            def create_polygon_solid(poly: list[list[float]]) -> cq.Workplane:
+                """Create solid or hollow extrusion from a polygon."""
+                if len(poly) < 3:
+                    raise CADLiftError(ErrorCode.GEO_INVALID_POLYGON, details=f"Polygon must have at least 3 points, got {len(poly)}")
 
-            # If no wall thickness, return solid extrusion
-            if wall_thickness <= 0:
-                return outer
+                # Create outer solid at Z offset
+                try:
+                    outer = (
+                        cq.Workplane("XY")
+                        .polyline([(p[0], p[1]) for p in poly])
+                        .close()
+                        .extrude(height)
+                        .translate((0, 0, z_offset))
+                    )
+                except Exception:
+                     # Fallback for complex polygons
+                     return None
 
-            # Create hollow room by subtracting inner cavity
-            try:
-                # Use offset2D to create inner polygon offset inward by wall_thickness
-                inner = (
-                    cq.Workplane("XY")
-                    .polyline([(p[0], p[1]) for p in poly])
-                    .close()
-                    .offset2D(-wall_thickness)
-                    .extrude(height)
-                )
+                # If no wall thickness, return solid extrusion
+                if wall_thickness <= 0:
+                    return outer
 
-                # Subtract inner from outer to get walls
-                return outer.cut(inner)
+                # Create hollow room by subtracting inner cavity
+                try:
+                    inner = (
+                        cq.Workplane("XY")
+                        .polyline([(p[0], p[1]) for p in poly])
+                        .close()
+                        .offset2D(-wall_thickness)
+                        .extrude(height)
+                        .translate((0, 0, z_offset))
+                    )
+                    return outer.cut(inner)
+                except Exception:
+                    logger.warning(f"Failed to create wall thickness, using solid")
+                    return outer
 
-            except Exception as e:
-                logger.warning(f"Failed to create wall thickness (offset2D failed): {e}")
-                logger.warning(f"Falling back to solid extrusion")
-                # Fallback: return solid extrusion if offset fails
-                return outer
+            # Create union of all polygons for this floor
+            result = create_polygon_solid(polygons[0])
+            for idx, poly in enumerate(polygons[1:], start=1):
+                if len(poly) < 3:
+                     continue
+                try:
+                    new_shape = create_polygon_solid(poly)
+                    if new_shape:
+                        result = result.union(new_shape)
+                except Exception:
+                    continue
 
-        # Start with the first polygon
-        first_poly = polygon_list[0]
-        result = create_polygon_solid(first_poly)
+            # Cut openings for this floor
+            if floor_openings:
+                try:
+                    from app.pipelines.geometry import _cut_openings_from_solid
+                    result = _cut_openings_from_solid(result, floor_openings, polygons, height, z_offset=z_offset)
+                except Exception:
+                    pass
 
-        if wall_thickness > 0:
-            logger.debug(f"Created first polygon with {len(first_poly)} points, "
-                        f"height={height}mm, wall_thickness={wall_thickness}mm")
-        else:
-            logger.debug(f"Created first polygon with {len(first_poly)} points, height={height}mm")
+            return result
 
-        # Add remaining polygons as unions
-        for idx, poly in enumerate(polygon_list[1:], start=1):
-            if len(poly) < 3:
-                logger.warning(f"Skipping polygon {idx}: insufficient points ({len(poly)})")
-                continue
+        # Build each floor and union them
+        result = None
+        total_openings = 0
 
-            try:
-                new_shape = create_polygon_solid(poly)
-                result = result.union(new_shape)
-                logger.debug(f"Added polygon {idx} with {len(poly)} points")
-            except Exception as e:
-                logger.warning(f"Failed to add polygon {idx}: {e}")
-                # Continue with other polygons rather than failing completely
-                continue
+        for floor_idx, floor in enumerate(floors):
+            level = floor.get("level", floor_idx)
+            polygons = floor.get("polygons", [])
+            height = floor.get("height", 3000.0)
+            z_offset = floor.get("z_offset", 0.0)
 
-        # Phase 6.2: Cut door/window openings from walls
-        if len(openings) > 0:
-            result = _cut_openings_from_solid(result, openings, polygon_list, height)
-            logger.info(f"Cut {len(openings)} openings from walls")
+            if height <= 0:
+                raise CADLiftError(ErrorCode.GEO_INVALID_HEIGHT, details=f"Floor {level} has invalid height: {height}mm")
+
+            # Filter openings for this floor
+            floor_openings = [o for o in openings if o.get("floor_level", 0) == level]
+            total_openings += len(floor_openings)
+
+            # Create floor solid
+            floor_solid = create_floor_solid(polygons, height, z_offset, floor_openings)
+
+            # Union with previous floors
+            if result is None:
+                result = floor_solid
+            else:
+                result = result.union(floor_solid)
 
         # Export to STEP format
-        # cadquery requires a file path, so we use a temporary file
         with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp_file:
             tmp_path = tmp_file.name
 
         try:
-            # Export to temp file
             cq.exporters.export(result, tmp_path, "STEP")
-
-            # Read back as bytes
             with open(tmp_path, "rb") as f:
                 step_bytes = f.read()
-
-            if len(openings) > 0:
-                logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
-                           f"height={height}mm, wall_thickness={wall_thickness}mm, "
-                           f"openings={len(openings)}, size={len(step_bytes)} bytes")
-            elif wall_thickness > 0:
-                logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
-                           f"height={height}mm, wall_thickness={wall_thickness}mm, "
-                           f"size={len(step_bytes)} bytes")
-            else:
-                logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
-                           f"height={height}mm, size={len(step_bytes)} bytes")
-
             return step_bytes
         finally:
-            # Clean up temp file
             try:
                 os.unlink(tmp_path)
             except Exception:
-                pass  # Ignore cleanup errors
+                pass
 
     except Exception as e:
-        logger.error(f"STEP generation failed: {e}")
-        raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=f"Failed to generate STEP solid: {e}") from e
+        logger.error(f"Multi-story STEP generation failed: {e}")
+        raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=f"Failed to generate multi-story STEP: {e}") from e
 
 
 def build_artifacts_multistory(
@@ -629,22 +623,6 @@ def build_artifacts_multistory(
 ) -> tuple[bytes, bytes]:
     """
     Generate both DXF and STEP artifacts for multi-story buildings (Phase 6.3).
-
-    Args:
-        floors: List of floor dicts with structure:
-            [
-                {"level": 0, "polygons": [...], "height": 3000, "z_offset": 0},
-                {"level": 1, "polygons": [...], "height": 3000, "z_offset": 3000}
-            ]
-        wall_thickness: Wall thickness in millimeters (default: 0 = solid)
-        only_2d: If True, generate only 2D footprints
-        openings: List of door/window openings with floor_level specified
-
-    Returns:
-        tuple: (dxf_bytes, step_bytes) - Multi-story artifacts
-
-    Raises:
-        CADLiftError: If floors are invalid or generation fails
     """
     if not floors:
         raise CADLiftError(ErrorCode.GEO_NO_POLYGONS, details="No floors provided for multi-story generation")
@@ -671,12 +649,185 @@ def build_artifacts_multistory(
     return dxf_bytes, step_bytes
 
 
+def build_step_solid(
+    polygons: Iterable[list[list[float]]],
+    height: float,
+    wall_thickness: float = 0.0,
+    openings: list[dict] = None,
+    operations: list[str] = None
+) -> bytes:
+    """
+    Generate real STEP solid with optional boolean operations.
+    """
+    polygon_list = list(polygons)
+
+    if not polygon_list:
+        raise CADLiftError(ErrorCode.GEO_NO_POLYGONS, details="No polygons provided for STEP generation")
+
+    if height <= 0:
+        raise CADLiftError(ErrorCode.GEO_INVALID_HEIGHT, details=f"Invalid extrusion height: {height}mm. Must be positive.")
+
+    if openings is None:
+        openings = []
+
+    if wall_thickness < 0:
+        raise CADLiftError(ErrorCode.GEO_INVALID_WALL_THICKNESS, details=f"Invalid wall thickness: {wall_thickness}mm. Must be non-negative.")
+
+    try:
+        # Phase 6.4: Helper to clean polygons (remove duplicates/collinear)
+        def _clean_polygon(poly: list[list[float]]) -> list[list[float]]:
+            if not poly: return []
+            cleaned = []
+            for p in poly:
+                if not cleaned:
+                    cleaned.append(p)
+                else:
+                    last = cleaned[-1]
+                    # Check for duplicate points with tolerance
+                    if ((p[0] - last[0])**2 + (p[1] - last[1])**2) > 0.0001:
+                        cleaned.append(p)
+            
+            # Remove closing point if it matches start (polyline().close() handles it)
+            if len(cleaned) > 1:
+                first = cleaned[0]
+                last = cleaned[-1]
+                if ((first[0] - last[0])**2 + (first[1] - last[1])**2) < 0.0001:
+                    cleaned.pop()
+            
+            return cleaned
+
+        # Helper function to create a single polygon solid (with optional wall thickness)
+        def create_polygon_solid(poly: list[list[float]]) -> cq.Workplane:
+            """Create solid or hollow extrusion from a polygon."""
+            cleaned_poly = _clean_polygon(poly)
+            
+            if len(cleaned_poly) < 3:
+                # If cleaning reduced it too much, try original but warn
+                if len(poly) >= 3:
+                    # logger.warning(f"Polygon cleaning reduced points from {len(poly)} to {len(cleaned_poly)}. Using original.")
+                    cleaned_poly = poly
+                else:
+                    # raise CADLiftError(ErrorCode.GEO_INVALID_POLYGON, details=f"Polygon must have at least 3 points, got {len(cleaned_poly)}")
+                    return None # Skip invalid without erroring whole job
+
+            # Create outer solid
+            try:
+                outer_wp = cq.Workplane("XY").polyline([(p[0], p[1]) for p in cleaned_poly]).close()
+                outer = outer_wp.extrude(height)
+            except Exception:
+                # logger.warning(f"Failed to create outer extrusion: {e}. Trying uncleaned.")
+                # Fallback to uncleaned
+                try:
+                    outer = cq.Workplane("XY").polyline([(p[0], p[1]) for p in poly]).close().extrude(height)
+                except Exception:
+                    # logger.warning(f"Failed to create outer extrusion even with uncleaned polygon.")
+                    return None
+
+            # If no wall thickness, return solid extrusion
+            if wall_thickness <= 0:
+                return outer
+
+            # Create hollow room by subtracting inner cavity
+            try:
+                # Use offset2D to create inner polygon offset inward by wall_thickness
+                inner = (
+                    cq.Workplane("XY")
+                    .polyline([(p[0], p[1]) for p in cleaned_poly])
+                    .close()
+                    .offset2D(-wall_thickness, kind="intersection") 
+                    .extrude(height)
+                )
+
+                # Subtract inner from outer to get walls
+                return outer.cut(inner)
+
+            except Exception:
+                # logger.warning(f"Failed to create wall thickness (offset2D failed): {e}")
+                # logger.warning(f"Falling back to solid extrusion")
+                # Fallback: return solid extrusion if offset fails
+                return outer
+
+        # Start with the first polygon
+        # If operations provided, verify first is not diff? Assuming index 0 is always base.
+        result = create_polygon_solid(polygon_list[0])
+        if result is None:
+             raise CADLiftError(ErrorCode.GEO_INVALID_POLYGON, details="First polygon invalid")
+
+        if wall_thickness > 0:
+            logger.debug(f"Created base solid, w={wall_thickness}mm")
+        else:
+            logger.debug(f"Created base solid")
+
+        # Process remaining polygons based on operations
+        for idx, poly in enumerate(polygon_list[1:], start=1):
+            new_shape = create_polygon_solid(poly)
+            if new_shape is None:
+                continue
+                
+            op = operations[idx] if operations and idx < len(operations) else "union"
+            
+            try:
+                if op == "diff":
+                    result = result.cut(new_shape)
+                    logger.debug(f"Cut polygon {idx} from result")
+                else:
+                    result = result.union(new_shape)
+                    logger.debug(f"Unioned polygon {idx} to result")
+            except Exception as e:
+                 logger.warning(f"Boolean operation {op} failed for polygon {idx}: {e}")
+                 continue
+
+        # Phase 6.2: Cut door/window openings from walls
+        if openings and len(openings) > 0:
+            result = _cut_openings_from_solid(result, openings, polygon_list, height)
+            logger.info(f"Cut {len(openings)} openings from walls")
+
+        # Export to STEP format
+        # cadquery requires a file path, so we use a temporary file
+        with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as tmp_file:
+            tmp_path = tmp_file.name
+
+        try:
+            # Export to temp file
+            cq.exporters.export(result, tmp_path, "STEP")
+
+            # Read back as bytes
+            with open(tmp_path, "rb") as f:
+                step_bytes = f.read()
+
+            # logger.info messages are now handled in build_artifacts
+            # if len(openings) > 0:
+            #     logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
+            #                f"height={height}mm, wall_thickness={wall_thickness}mm, "
+            #                f"openings={len(openings)}, size={len(step_bytes)} bytes")
+            # elif wall_thickness > 0:
+            #     logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
+            #                f"height={height}mm, wall_thickness={wall_thickness}mm, "
+            #                f"size={len(step_bytes)} bytes")
+            # else:
+            #     logger.info(f"Generated STEP solid: {len(polygon_list)} polygons, "
+            #                f"height={height}mm, size={len(step_bytes)} bytes")
+
+            return step_bytes
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass  # Ignore cleanup errors
+
+    except Exception as e:
+        logger.error(f"STEP generation failed: {e}")
+        raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=f"Failed to generate STEP solid: {e}") from e
+
+
 def build_artifacts(
     polygons: list[list[list[float]]],
     height: float,
     wall_thickness: float = 0.0,
     only_2d: bool = False,
-    openings: list[dict] = None  # Phase 6.2 - door & window support
+    openings: list[dict] = None,  # Phase 6.2 - door & window support
+    operations: list[str] = None
 ) -> tuple[bytes, bytes]:
     """
     Generate both DXF and STEP artifacts from polygons.
@@ -688,6 +839,7 @@ def build_artifacts(
                        If > 0, creates hollow rooms in STEP output
         only_2d: If True, generate only 2D footprints (Phase 2.2.5)
         openings: List of door/window openings to cut from walls (Phase 6.2)
+        operations: List of boolean operations ('union', 'diff') per polygon
 
     Returns:
         tuple: (dxf_bytes, step_bytes) - Both as ready-to-save byte arrays
@@ -715,7 +867,7 @@ def build_artifacts(
         # For 2D-only mode, create minimal STEP placeholder
         step_bytes = b"/* 2D-only mode: STEP generation skipped */"
     else:
-        step_bytes = build_step_solid(polygons, height, wall_thickness, openings)
+        step_bytes = build_step_solid(polygons, height, wall_thickness, openings, operations)
 
     if len(openings) > 0:
         logger.info(f"Generated artifacts: DXF={len(dxf_bytes)} bytes, "
@@ -975,21 +1127,15 @@ def export_gltf_with_materials(
     wall_thickness: float = 0.0,
     material: str = "concrete",
     tolerance: float = 0.1,
-    binary: bool = False
+    binary: bool = False,
+    operations: list[str] = None
 ) -> bytes:
     """
     Export polygons as glTF/GLB file with PBR materials (Phase 6.4).
 
     Args:
-        polygons: List of polygons, each polygon is a list of [x, y] coordinates
-        height: Extrusion height in millimeters
-        wall_thickness: Wall thickness in millimeters (default: 0 = solid)
-        material: Material name from MATERIAL_LIBRARY
-        tolerance: Tessellation tolerance
-        binary: If True, export as GLB (binary), otherwise glTF (JSON)
-
-    Returns:
-        bytes: glTF JSON or GLB binary content
+        ...
+        operations: List of boolean operations ('union', 'diff') per polygon
     """
     import json
 
@@ -1029,12 +1175,19 @@ def export_gltf_with_materials(
     # Build solid
     result = create_polygon_solid(polygon_list[0])
     for idx, poly in enumerate(polygon_list[1:], start=1):
-        if len(poly) >= 3:
-            try:
-                new_shape = create_polygon_solid(poly)
+        if len(poly) < 3:
+            continue
+            
+        op = operations[idx] if operations and idx < len(operations) else "union"
+        
+        try:
+            new_shape = create_polygon_solid(poly)
+            if op == "diff":
+                result = result.cut(new_shape)
+            else:
                 result = result.union(new_shape)
-            except Exception:
-                continue
+        except Exception:
+            continue
 
     # Convert to trimesh
     mesh = convert_cq_to_trimesh(result, tolerance=tolerance)

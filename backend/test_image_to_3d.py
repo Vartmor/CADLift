@@ -95,45 +95,44 @@ async def test_image_to_3d():
 
     try:
         cube_bytes = test_images['cube']
-        ply_bytes = await service.generate_from_image_async(
+        print("   - Calling generate_from_image (synchronous)...")
+        # TripoSR doesn't use guidance_scale/steps, runs on CPU/GPU directly
+        obj_bytes = service.generate_from_image(
             cube_bytes,
-            guidance_scale=3.0,
-            num_steps=64
+            bg_removal=True
         )
 
         print(f"4. Generation successful!")
-        print(f"   - Output size: {len(ply_bytes):,} bytes")
-        print(f"   - Format: PLY")
+        print(f"   - Output size: {len(obj_bytes):,} bytes")
+        print(f"   - Format: OBJ")
         print()
 
-        # Save PLY output
-        ply_path = output_dir / "image_to_3d_cube.ply"
-        ply_path.write_bytes(ply_bytes)
-        print(f"5. Saved PLY: {ply_path}")
+        # Save OBJ output
+        obj_path = output_dir / "image_to_3d_cube.obj"
+        obj_path.write_bytes(obj_bytes)
+        print(f"5. Saved OBJ: {obj_path}")
         print()
 
         # Convert to GLB
         print("6. Converting to GLB format...")
         converter = get_mesh_converter()
-        glb_bytes = converter.convert(ply_bytes, "ply", "glb")
+        glb_bytes = converter.convert(obj_bytes, "obj", "glb")
 
         glb_path = output_dir / "image_to_3d_cube.glb"
         glb_path.write_bytes(glb_bytes)
         print(f"   - Saved GLB: {glb_path}")
         print()
 
-        # Test with sphere (faster - 32 steps)
-        print("7. Quick test with sphere (32 steps)...")
+        # Test with sphere (faster? TripoSR is always fast)
+        print("7. Quick test with sphere...")
         sphere_bytes = test_images['sphere']
-        sphere_ply = await service.generate_from_image_async(
-            sphere_bytes,
-            guidance_scale=3.0,
-            num_steps=32  # Faster for testing
+        sphere_obj = service.generate_from_image(
+            sphere_bytes
         )
 
-        sphere_path = output_dir / "image_to_3d_sphere.ply"
-        sphere_path.write_bytes(sphere_ply)
-        print(f"   - Saved sphere: {sphere_path.name} ({len(sphere_ply):,} bytes)")
+        sphere_path = output_dir / "image_to_3d_sphere.obj"
+        sphere_path.write_bytes(sphere_obj)
+        print(f"   - Saved sphere: {sphere_path.name} ({len(sphere_obj):,} bytes)")
         print()
 
         print("=" * 70)

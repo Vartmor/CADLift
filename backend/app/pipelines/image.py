@@ -39,10 +39,16 @@ async def run(job: Job, session: AsyncSession) -> None:
     await update_progress(5)  # Starting
 
     params = job.params or {}
+    merged_params = dict(params) # Initialize early to avoid scope errors
     ai_metadata: dict | None = None
 
+    # Determine mode-specific flags
+    is_precision_mode = (job.mode == "image_to_precision")
+    is_2d_mode = (job.mode == "image_to_2d")
+
     # Optional: TripoSG direct image-to-3D
-    if bool(params.get("use_triposg", False)):
+    # Skip if we are in a precision (engineering) mode or 2D mode
+    if bool(params.get("use_triposg", False)) and not (is_precision_mode or is_2d_mode):
         triposg = get_triposg_service()
         if triposg.is_available():
             try:
@@ -130,7 +136,10 @@ async def run(job: Job, session: AsyncSession) -> None:
             logger.warning("TripoSG path requested but service unavailable; continuing to other pipelines")
 
     # Phase 6: Try TripoSR image-to-3D when enabled (same approach as prompt.py)
-    if bool(params.get("use_triposr", True)):
+    # Skip if mode is image_to_2d OR image_to_precision
+    use_triposr = bool(params.get("use_triposr", True)) and not (is_2d_mode or is_precision_mode)
+    
+    if use_triposr:
         from app.services.triposr import get_triposr_service, TripoSRError
         from app.services.mesh_converter import get_mesh_converter, MeshConversionError
         from app.services.mesh_processor import process_mesh
@@ -264,10 +273,96 @@ async def run(job: Job, session: AsyncSession) -> None:
                 logger.warning("TripoSR image-to-3D failed, falling back to parametric", extra={"error": str(exc)})
             except Exception as exc:
                 logger.warning("TripoSR unexpected error, falling back to parametric", extra={"error": str(exc)})
-        else:
-            logger.warning("TripoSR not available, falling back to parametric pipeline")
+    
+    # Phase 7: Smart Blueprint Processing (Vision AI)
+    # If not forced-2D, try to interpret the drawing as a precision part
+    # Default to True for now as this is a new feature
+    # FORCE vision if we are in precision mode
+    use_vision = bool(params.get("use_vision", True)) or is_precision_mode
+    
+    # Try vision if we have LLM service enabled and we are in 2D or 3D mode
+    if use_vision:
+        try:
+            from app.services.llm import llm_service
+            if llm_service.enabled:
+                logger.info("Attempting Smart Blueprint Processing via Vision AI")
+                await update_progress(15)
 
-    model = await _generate_model(input_path, job)
+                # UNIFIED PIPELINE: If Precision Mode, convert Image -> Text -> CAD
+                if is_precision_mode:
+                    logger.info("Precision Mode: Using Unified Image-to-Text-to-CAD pipeline")
+                    image_bytes = input_path.read_bytes()
+                    
+                    # 1. Vision AI: Generate Text Prompt
+                    generated_prompt = await llm_service.describe_image(
+                        image_bytes,
+                        prompt_text=params.get("prompt")
+                    )
+                    logger.info(f"Generated CAD Prompt from Image: {generated_prompt}")
+                    
+                    # 2. Update params
+                    merged_params["generated_prompt"] = generated_prompt
+                    merged_params["vision_pipeline"] = "text_bridge"
+                    
+                    # 3. Delegate to Prompt Pipeline (SolidPython)
+                    from app.pipelines.prompt import run_precision_cad
+                    await run_precision_cad(job, session, generated_prompt, merged_params)
+                    return
+                
+                # Check for cached instructions from params (e.g. from retry)
+                vision_instructions = params.get("vision_instructions")
+                
+                if not vision_instructions:
+                    image_bytes = input_path.read_bytes()
+                    vision_instructions = await llm_service.generate_from_image(
+                        image_bytes, 
+                        prompt_text=params.get("prompt") # Optional hint from user
+                    )
+                
+                if vision_instructions:
+                    logger.info("Vision analysis successful, building precision model")
+                    await update_progress(30)
+                    
+                    from app.services.parametric_service import instructions_to_model
+                    
+                    # Convert instructions to model using shared logic
+                    # Provide defaults from params
+                    model = instructions_to_model(vision_instructions, "", params)
+                    
+                    # Ensure metadata reflects vision source
+                    model["metadata"]["source"] = "vision_ai"
+                    
+                    if ai_metadata is None:
+                        ai_metadata = {}
+                    ai_metadata["vision_pipeline"] = True
+                    # Also store instructions in params for debugging/retries
+                    merged_params["vision_instructions"] = vision_instructions
+                    
+                    # Skip local contour extraction since we have precision model
+                    # But we need to update job status here because we skip _generate_model
+                    
+                    # Continue to artifact generation (lines 294+) using this model
+                    # We jump to line 294 by breaking out of fallback logic?
+                    # The code structure below calls _generate_model if we don't return here.
+                    # But _generate_model is for pixel tracing.
+                    # So we should use this model and proceed to artifact generation.
+                    pass 
+                else:
+                    logger.info("Vision AI returned no instructions, falling back")
+                    model = await _generate_model(input_path, job)
+            else:
+                model = await _generate_model(input_path, job) # No LLM
+        except Exception as e:
+            logger.warning(f"Smart Blueprint Processing failed: {e}", extra={"error": str(e)})
+            # Fallback to standard pixel tracing
+            model = await _generate_model(input_path, job)
+    else:
+        model = await _generate_model(input_path, job)
+
+    # Ensure model is valid before proceeding
+    if not model:
+         # Should be caught by exception handlers but safe guard
+         model = await _generate_model(input_path, job)
 
     json_storage_key, json_size = storage_service.save_bytes(
         json.dumps(model, indent=2).encode("utf-8"),
@@ -287,14 +382,19 @@ async def run(job: Job, session: AsyncSession) -> None:
     session.add(json_file)
     await session.flush()
 
-    # Get wall thickness from model (default: 200mm for architectural quality)
-    wall_thickness = float(model.get("wall_thickness", 200.0))
+    # Get wall thickness from model
+    # For precision/mechanical parts, default to 0 (solid) if not specified
+    # For architectural/floor plans, default to 200mm
+    default_thickness = 0.0 if is_precision_mode else 200.0
+    wall_thickness = float(model.get("wall_thickness", default_thickness))
+    
     only_2d = model.get("only_2d", False)
     dxf_bytes, step_bytes = build_artifacts(
         model["contours"],
         model["extrude_height"],
         wall_thickness=wall_thickness,
-        only_2d=only_2d
+        only_2d=only_2d,
+        operations=model.get("metadata", {}).get("operations")
     )
     dxf_storage_key, dxf_size = storage_service.save_bytes(
         dxf_bytes,
@@ -332,11 +432,57 @@ async def run(job: Job, session: AsyncSession) -> None:
     session.add(step_file)
     await session.flush()
 
+    # Generate GLB for 3D Viewer (Visualization Only)
+    # This allows the frontend to show a 3D preview even in 2D mode
+    glb_file = None
+    try:
+        from app.pipelines.geometry import export_gltf_with_materials
+        
+        # Use simple concrete material for visualization
+        glb_bytes = export_gltf_with_materials(
+            model["contours"],
+            model["extrude_height"],
+            wall_thickness=wall_thickness,
+            material="concrete",
+            binary=True,
+            operations=model.get("metadata", {}).get("operations")
+        )
+        
+        glb_storage_key, glb_size = storage_service.save_bytes(
+            glb_bytes,
+            role="output",
+            job_id=job.id,
+            filename="image_model.glb",
+        )
+        
+        glb_file = FileModel(
+            user_id=job.user_id,
+            job_id=job.id,
+            role="output",
+            storage_key=glb_storage_key,
+            original_name="image_model.glb",
+            mime_type="model/gltf-binary",
+            size_bytes=glb_size,
+        )
+        session.add(glb_file)
+        await session.flush()
+        logger.info("Generated visualization GLB for Image-to-2D job")
+        
+    except Exception as exc:
+        logger.warning(f"Failed to generate visualization GLB: {exc}")
+
     job.output_file_id = dxf_file.id
     merged_params = job.params or {}
+    
+    # Critical: Persist artifact IDs so frontend can enable download buttons
+    merged_params["dxf_file_id"] = dxf_file.id
+    merged_params["step_file_id"] = step_file.id
+    if glb_file:
+         merged_params["glb_file_id"] = glb_file.id
+    
     if ai_metadata:
         merged_params["ai_metadata"] = ai_metadata
-    merged_params["step_file_id"] = step_file.id
+        
     job.params = merged_params
     job.status = "completed"
     job.error_code = None
@@ -347,6 +493,12 @@ async def _generate_model(path: Path, job: Job) -> dict:
     params = job.params or {}
     height = float(params.get("extrude_height", 3000))
     wall_thickness = float(params.get("wall_thickness", 200.0))
+
+    # Validating/Defaulting height
+    if height <= 0:
+        height = 3000.0  # Default to standard floor height if 0 or invalid
+
+    is_2d_mode = (job.mode == "image_to_2d")
 
     contours: list[list[list[float]]]
     if vision_service.enabled:
@@ -385,7 +537,7 @@ async def _generate_model(path: Path, job: Job) -> dict:
         "contours": contours,
         "extrude_height": height,
         "wall_thickness": wall_thickness,
-        "only_2d": bool(params.get("only_2d", False)),
+        "only_2d": bool(params.get("only_2d", False)) or is_2d_mode,
         "metadata": {
             "source": Path(path).name,
             "contour_count": len(contours),

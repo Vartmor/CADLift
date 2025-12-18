@@ -287,6 +287,14 @@ const JobStatusComponent: React.FC<JobStatusProps> = ({ jobId, onReset }) => {
                     <span>Download STEP</span>
                   </button>
                   <button
+                    onClick={() => dxfUrl && downloadFile(dxfUrl, `${baseName}.dxf`)}
+                    disabled={!dxfUrl}
+                    className="flex-1 flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Download size={18} />
+                    <span>Download DWG</span>
+                  </button>
+                  <button
                     onClick={() => glbUrl && downloadFile(glbUrl, `${baseName}.glb`)}
                     disabled={!glbUrl}
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"

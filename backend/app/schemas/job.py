@@ -19,6 +19,13 @@ class JobRead(JobBase):
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None = None
+    
+    # Computed fields
+    download_url: str | None = None
+    dxf_download_url: str | None = None
+    step_download_url: str | None = None
+    glb_download_url: str | None = None
+    outputName: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

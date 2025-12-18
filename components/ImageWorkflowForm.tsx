@@ -11,7 +11,7 @@ interface ImageWorkflowFormProps {
 const ImageWorkflowForm: React.FC<ImageWorkflowFormProps> = ({ onCreate, onSuccess }) => {
   const { t } = useTranslation();
   const [image, setImage] = useState<File | null>(null);
-  const [conversion, setConversion] = useState<'2d' | '3d'>('2d');
+  const [conversion, setConversion] = useState<'2d' | '3d' | 'precision'>('2d');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,15 +45,22 @@ const ImageWorkflowForm: React.FC<ImageWorkflowFormProps> = ({ onCreate, onSucce
     }
     setIsSubmitting(true);
     const base = image.name.replace(/\.[^/.]+$/, '');
-    const outputLabel =
-      conversion === '2d' ? `${base}_vector.dxf` : `${base}_mesh.fbx`;
+
+    let outputLabel = `${base}_vector.dxf`;
+    let mode = ConversionMode.IMAGE_TO_2D;
+
+    if (conversion === '3d') {
+      outputLabel = `${base}_mesh.fbx`;
+      mode = ConversionMode.IMAGE_TO_3D;
+    } else if (conversion === 'precision') {
+      outputLabel = `${base}_precision.step`;
+      mode = 'image_to_precision' as ConversionMode; // Temporary cast
+    }
+
     try {
       await onCreate({
         file: image,
-        mode:
-          conversion === '2d'
-            ? ConversionMode.IMAGE_TO_2D
-            : ConversionMode.IMAGE_TO_3D,
+        mode,
         unit: Unit.MM,
         extrudeHeight: 0,
         intent: 'image',
@@ -70,9 +77,8 @@ const ImageWorkflowForm: React.FC<ImageWorkflowFormProps> = ({ onCreate, onSucce
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div
-        className={`border-2 border-dashed rounded-3xl p-6 text-center relative overflow-hidden transition-colors ${
-          error ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-        } dark:border-slate-700 dark:bg-slate-900`}
+        className={`border-2 border-dashed rounded-3xl p-6 text-center relative overflow-hidden transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+          } dark:border-slate-700 dark:bg-slate-900`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
@@ -104,37 +110,70 @@ const ImageWorkflowForm: React.FC<ImageWorkflowFormProps> = ({ onCreate, onSucce
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           type="button"
           onClick={() => setConversion('2d')}
-          className={`p-4 rounded-2xl border text-left transition-all ${
-            conversion === '2d'
-              ? 'border-primary-500 shadow-lg bg-primary-50 dark:bg-primary-900/20'
-              : 'border-slate-200 dark:border-slate-700'
-          }`}
+          className={`p-4 rounded-2xl border text-left transition-all ${conversion === '2d'
+            ? 'border-emerald-500 shadow-lg bg-emerald-50 dark:bg-emerald-900/20'
+            : 'border-slate-200 dark:border-slate-700'
+            }`}
         >
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {t('dashboard.imageForm.option2d.title')}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t('dashboard.imageForm.option2d.desc')}
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`p-1.5 rounded-lg ${conversion === '2d' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <span className="text-xs font-bold">2D</span>
+            </div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              Vectorize Sketch
+            </p>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Convert floor plans or sketches into DXF lines.
+            <span className="block mt-1 font-medium text-emerald-600 dark:text-emerald-400">Best for: CAD Drafting</span>
           </p>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setConversion('precision')}
+          className={`p-4 rounded-2xl border text-left transition-all ${conversion === 'precision'
+            ? 'border-blue-500 shadow-lg bg-blue-50 dark:bg-blue-900/20'
+            : 'border-slate-200 dark:border-slate-700'
+            }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`p-1.5 rounded-lg ${conversion === 'precision' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <span className="text-xs font-bold">CAD</span>
+            </div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              Precision 3D
+            </p>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            AI extracts dimensions from blueprints for Parametric CAD.
+            <span className="block mt-1 font-medium text-blue-600 dark:text-blue-400">Best for: Engineering</span>
+          </p>
+        </button>
+
         <button
           type="button"
           onClick={() => setConversion('3d')}
-          className={`p-4 rounded-2xl border text-left transition-all ${
-            conversion === '3d'
-              ? 'border-primary-500 shadow-lg bg-primary-50 dark:bg-primary-900/20'
-              : 'border-slate-200 dark:border-slate-700'
-          }`}
+          className={`p-4 rounded-2xl border text-left transition-all ${conversion === '3d'
+            ? 'border-purple-500 shadow-lg bg-purple-50 dark:bg-purple-900/20'
+            : 'border-slate-200 dark:border-slate-700'
+            }`}
         >
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {t('dashboard.imageForm.option3d.title')}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t('dashboard.imageForm.option3d.desc')}
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`p-1.5 rounded-lg ${conversion === '3d' ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <span className="text-xs font-bold">3D</span>
+            </div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              AI Concept Mesh
+            </p>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Generate organic 3D models from photos.
+            <span className="block mt-1 font-medium text-purple-600 dark:text-purple-400">Best for: Visualization</span>
           </p>
         </button>
       </div>

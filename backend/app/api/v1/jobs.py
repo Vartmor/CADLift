@@ -11,7 +11,7 @@ from app import deps
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.validation import validate_dxf_file, validate_image_file, validate_job_parameters
-from app.models import Job, File as FileModel
+from app.models import Job, User, File as FileModel
 from app.schemas.job import JobRead
 from app.worker import process_job, process_job_async
 from app.services.storage import storage_service
@@ -23,12 +23,30 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 def serialize_job(job: Job) -> JobRead:
+    
+    # Compute download URLs
+    download_url = f"/api/v1/files/{job.output_file_id}/download" if job.output_file_id else None
+    
+    # Extract specific artifacts from params
+    dxf_id = (job.params or {}).get("dxf_file_id")
+    step_id = (job.params or {}).get("step_file_id")
+    glb_id = (job.params or {}).get("glb_file_id")
+    
+    dxf_url = f"/api/v1/files/{dxf_id}/download" if dxf_id else None
+    step_url = f"/api/v1/files/{step_id}/download" if step_id else None
+    glb_url = f"/api/v1/files/{glb_id}/download" if glb_id else None
+    
+    # Determine output name
+    # Usually we don't store the exact output filename on the job model easily accessible
+    # But job service often relies on the output_file's name or constructs it
+    output_name = f"model.step" if step_id else "output"
+
     return JobRead(
         id=job.id,
         job_type=job.job_type,
         mode=job.mode,
         status=job.status,
-        progress=job.progress,  # Include progress in response
+        progress=job.progress,
         params=job.params,
         error_code=job.error_code,
         error_message=job.error_message,
@@ -37,6 +55,11 @@ def serialize_job(job: Job) -> JobRead:
         created_at=job.created_at,
         updated_at=job.updated_at,
         completed_at=job.completed_at,
+        download_url=download_url,
+        dxf_download_url=dxf_url,
+        step_download_url=step_url,
+        glb_download_url=glb_url,
+        outputName=output_name
     )
 
 
@@ -47,6 +70,7 @@ async def create_job_endpoint(
     params: str | None = Form(None),
     upload: UploadFile | None = File(None),
     session: AsyncSession = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user),
 ):
     # Parse parameters
     job_params = {}
@@ -62,7 +86,7 @@ async def create_job_endpoint(
         logger.warning("parameter_validation_failed", job_type=job_type, error=error_msg)
         raise HTTPException(status_code=400, detail=f"Invalid parameters: {error_msg}")
 
-    job = Job(job_type=job_type, mode=mode, status="queued", params=job_params)
+    job = Job(job_type=job_type, mode=mode, status="queued", params=job_params, user_id=user.id)
     session.add(job)
     await session.flush()
 
@@ -169,7 +193,10 @@ async def create_job_endpoint(
 
 
 @router.get("", response_model=list[JobRead])
-async def list_jobs(session: AsyncSession = Depends(deps.get_db)):
+async def list_jobs(
+    session: AsyncSession = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
     from datetime import datetime, timedelta
     
     # Auto-cleanup: mark stuck processing jobs as failed (older than 10 minutes)
@@ -189,14 +216,20 @@ async def list_jobs(session: AsyncSession = Depends(deps.get_db)):
     if stuck_jobs:
         await session.commit()
     
-    result = await session.execute(select(Job).order_by(Job.created_at.desc()))
+    result = await session.execute(
+        select(Job).where(Job.user_id == user.id).order_by(Job.created_at.desc())
+    )
     jobs = result.scalars().all()
     return [serialize_job(job) for job in jobs]
 
 
 @router.get("/{job_id}", response_model=JobRead)
-async def get_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
-    result = await session.execute(select(Job).where(Job.id == job_id))
+async def get_job(
+    job_id: str,
+    session: AsyncSession = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    result = await session.execute(select(Job).where(Job.id == job_id, Job.user_id == user.id))
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -204,9 +237,13 @@ async def get_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
+async def delete_job(
+    job_id: str,
+    session: AsyncSession = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
     """Delete a job and its associated files."""
-    result = await session.execute(select(Job).where(Job.id == job_id))
+    result = await session.execute(select(Job).where(Job.id == job_id, Job.user_id == user.id))
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -227,9 +264,13 @@ async def delete_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
 
 
 @router.post("/{job_id}/cancel", response_model=JobRead)
-async def cancel_job(job_id: str, session: AsyncSession = Depends(deps.get_db)):
+async def cancel_job(
+    job_id: str,
+    session: AsyncSession = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
     """Cancel a running or queued job."""
-    result = await session.execute(select(Job).where(Job.id == job_id))
+    result = await session.execute(select(Job).where(Job.id == job_id, Job.user_id == user.id))
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")

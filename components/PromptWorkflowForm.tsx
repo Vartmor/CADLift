@@ -159,6 +159,9 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
       });
       if (onSuccess) onSuccess();
       setPrompt('');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || t('common.status_failed'));
     } finally {
       setIsSubmitting(false);
     }

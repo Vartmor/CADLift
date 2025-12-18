@@ -52,7 +52,7 @@ async def _update_progress(job: Job, session: AsyncSession, progress: int) -> No
     await session.commit()
 
 
-async def _run_precision_cad(job: Job, session: AsyncSession, prompt_text: str, params: dict) -> None:
+async def run_precision_cad(job: Job, session: AsyncSession, prompt_text: str, params: dict) -> None:
     """
     Run precision CAD generation using SolidPython.
     
@@ -288,22 +288,33 @@ async def run(job: Job, session: AsyncSession) -> None:
     logger.info("Processing prompt job", extra={"job_id": job.id})
     await _update_progress(job, session, 5)  # Starting
 
-    # Check for precision CAD mode
-    precision_mode = bool(params.get("precision_mode", False))
-    if precision_mode:
-        logger.info("Precision CAD mode selected", extra={"job_id": job.id})
-        return await _run_precision_cad(job, session, prompt_text, params)
+    # Check generation mode for precise routing
+    generation_mode = params.get("generation_mode")
 
-    routing = get_routing_service().route(prompt_text)
-    logger.info(
-        "Routing selection for prompt job",
-        extra={"pipeline": routing.pipeline, "category": routing.object_category.value, "confidence": routing.confidence},
-    )
+    # 1. Precision 3D (Mechanical Parts) -> SolidPython
+    if generation_mode == "precision_3d":
+        logger.info("Precision 3D mode selected", extra={"job_id": job.id})
+        return await run_precision_cad(job, session, prompt_text, params)
+
+    # 2. Precision 2D (Floor Plans) -> Skip AI, go directly to Parametric Pipeline
+    force_parametric = (generation_mode == "precision_2d")
+
+    # Legacy fallback: If no generation_mode but precision_mode is True, assume 3D
+    if not generation_mode and bool(params.get("precision_mode", False)):
+        logger.info("Legacy precision mode detected (assumed 3D)", extra={"job_id": job.id})
+        return await run_precision_cad(job, session, prompt_text, params)
+
+    if not force_parametric:
+        routing = get_routing_service().route(prompt_text)
+        logger.info(
+            "Routing selection for prompt job",
+            extra={"pipeline": routing.pipeline, "category": routing.object_category.value, "confidence": routing.confidence},
+        )
 
     # Always try AI image path first: Stable Diffusion → (fallback OpenAI) → TripoSR.
     # If anything in this chain fails, fall back to parametric.
     try_ai = bool(params.get("use_ai", True))
-    if try_ai:
+    if try_ai and not force_parametric:
         img_service = get_openai_image_service()
         sd_service = get_stable_diffusion_service()
         triposr = get_triposr_service()

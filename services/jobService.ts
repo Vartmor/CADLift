@@ -109,6 +109,9 @@ const defaultOutputByMode = (mode: ConversionMode) => {
       return 'vector_plan.dxf';
     case ConversionMode.IMAGE_TO_3D:
       return 'image_model.fbx';
+    // @ts-ignore - Temporary until type definition updated
+    case 'image_to_precision':
+      return 'precision_part.step';
     case ConversionMode.PROMPT_TO_2D:
       return 'prompt_sketch.dxf';
     case ConversionMode.PROMPT_TO_3D:
@@ -123,6 +126,8 @@ const resolveOutputName = (data: UploadFormData) => {
   const file = data.file;
   if (file) {
     const base = file.name.replace(/\.[^/.]+$/, '');
+    // @ts-ignore
+    if (data.mode === 'image_to_precision') return `${base}_precision.step`;
     return data.mode === ConversionMode.FLOOR_PLAN || data.mode === ConversionMode.MECHANICAL
       ? `${base}_3d.step`
       : `${base}_${data.mode === ConversionMode.IMAGE_TO_2D ? 'vector' : 'mesh'}.step`;
@@ -138,6 +143,8 @@ const resolveInputName = (data: UploadFormData) => {
 
 const resolveJobType = (data: UploadFormData): JobIntent => {
   if (data.intent) return data.intent;
+  // @ts-ignore
+  if (data.mode === 'image_to_precision') return 'image';
   if (data.mode === ConversionMode.IMAGE_TO_2D || data.mode === ConversionMode.IMAGE_TO_3D) return 'image';
   if (data.mode === ConversionMode.PROMPT_TO_2D || data.mode === ConversionMode.PROMPT_TO_3D) return 'prompt';
   return 'cad';
@@ -234,8 +241,10 @@ const adaptApiJob = (job: ApiJobEntity): JobRecord => {
   };
 };
 
+import { authService } from './auth';
+
 const apiFetch = async (path: string, options?: RequestInit) => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await authService.fetchWithAuth(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       ...(options?.headers ?? {}),
@@ -243,6 +252,11 @@ const apiFetch = async (path: string, options?: RequestInit) => {
   });
   if (!response.ok) {
     const errorText = await response.text();
+    // Special handling for 401 to help debugging
+    if (response.status === 401) {
+      console.error("Auth failed for job request. Is user logged in?");
+      throw new Error(`API 401: Unauthorized - Please login`);
+    }
     throw new Error(`API ${response.status}: ${errorText}`);
   }
   return response;
@@ -265,6 +279,7 @@ const remoteAdapter = {
     if (data.metadata?.prompt) params.prompt = data.metadata.prompt;
     if (data.metadata?.detail) params.detail = data.metadata.detail;
     if (data.metadata?.precision_mode) params.precision_mode = data.metadata.precision_mode;
+    if (data.metadata?.generation_mode) params.generation_mode = data.metadata.generation_mode;
     formData.append('params', JSON.stringify(params));
     const response = await apiFetch('/api/v1/jobs', {
       method: 'POST',
