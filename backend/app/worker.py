@@ -1,7 +1,19 @@
+"""
+Celery worker for background job processing.
+
+NOTE: This module requires celery and redis which are optional dependencies.
+When ENABLE_TASK_QUEUE=false, this module is not used.
+"""
 import asyncio
 import time
 
-from celery import Celery
+# Celery is optional - only needed when ENABLE_TASK_QUEUE=true
+try:
+    from celery import Celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    Celery = None
+    CELERY_AVAILABLE = False
 
 from app.core.config import get_settings
 from app.core.errors import CADLiftError
@@ -21,16 +33,32 @@ configure_logging(
 
 logger = get_logger("cadlift.worker")
 
-celery_app = Celery(
-    "cadlift",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
-)
+# Only create celery app if available and enabled
+celery_app = None
+if CELERY_AVAILABLE and settings.enable_task_queue:
+    celery_app = Celery(
+        "cadlift",
+        broker=settings.redis_url,
+        backend=settings.redis_url,
+    )
 
 
-@celery_app.task(name="process_job")
-def process_job(job_id: str) -> None:
-    asyncio.run(process_job_async(job_id))
+def _get_celery_task():
+    """Get the celery task decorator if available."""
+    if celery_app is None:
+        raise RuntimeError("Celery not available. Set ENABLE_TASK_QUEUE=true and install celery[redis].")
+    return celery_app.task
+
+
+# Conditionally define the task
+if celery_app is not None:
+    @celery_app.task(name="process_job")
+    def process_job(job_id: str) -> None:
+        asyncio.run(process_job_async(job_id))
+else:
+    def process_job(job_id: str) -> None:
+        """Stub function when Celery is not available."""
+        raise RuntimeError("Celery not available. Run jobs synchronously or install celery[redis].")
 
 
 async def process_job_async(job_id: str) -> None:

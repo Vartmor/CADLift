@@ -27,6 +27,7 @@ dependencies = [
     "structlog>=24.1",
     "openai>=1.52.0",
     "solidpython2>=2.0",
+    "Pillow>=10.0",
 ]
 
 [project.optional-dependencies]

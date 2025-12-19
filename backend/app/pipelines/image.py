@@ -16,10 +16,15 @@ from app.core.errors import CADLiftError, ErrorCode
 from app.services.triposg import get_triposg_service, TripoSGError
 from app.services.mesh_converter import get_mesh_converter, MeshConversionError
 from app.services.mesh_processor import process_mesh
-from app.pipelines.ai import run_ai_pipeline
+# AI pipeline is loaded lazily to avoid importing heavy deps at startup
 import logging
 
 logger = logging.getLogger("cadlift.pipeline.image")
+
+def _get_ai_pipeline():
+    """Lazily import AI pipeline to avoid heavy dependencies at startup."""
+    from app.pipelines.ai import run_ai_pipeline
+    return run_ai_pipeline
 
 async def run(job: Job, session: AsyncSession) -> None:
     # Helper to update job progress

@@ -2,6 +2,9 @@
 AI-based 3D generation pipeline.
 
 Handles text-to-3D and image-to-3D generation using AI services.
+
+NOTE: This module requires optional AI dependencies (torch, triposr, etc).
+Services are loaded lazily to avoid import errors in production.
 """
 from __future__ import annotations
 
@@ -9,12 +12,24 @@ import logging
 from typing import Any
 from io import BytesIO
 
-from app.services.shap_e import get_shap_e_service, ShapEAPIError
-from app.services.mesh_converter import get_mesh_converter, MeshConversionError
-from app.services.triposr import get_triposr_service, TripoSRError
-from app.services.mesh_processor import process_mesh, get_mesh_processor
-
 logger = logging.getLogger("cadlift.pipeline.ai")
+
+# Lazy imports - these services have heavy dependencies
+def _get_shap_e():
+    from app.services.shap_e import get_shap_e_service, ShapEAPIError
+    return get_shap_e_service(), ShapEAPIError
+
+def _get_triposr():
+    from app.services.triposr import get_triposr_service, TripoSRError
+    return get_triposr_service(), TripoSRError
+
+def _get_mesh_converter():
+    from app.services.mesh_converter import get_mesh_converter, MeshConversionError
+    return get_mesh_converter(), MeshConversionError
+
+def _get_mesh_processor():
+    from app.services.mesh_processor import process_mesh, get_mesh_processor
+    return process_mesh, get_mesh_processor
 
 
 async def run_ai_pipeline(

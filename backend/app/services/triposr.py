@@ -20,7 +20,6 @@ from pathlib import Path
 from io import BytesIO
 from typing import Optional, Any
 import numpy as np
-from PIL import Image
 
 logger = logging.getLogger("cadlift.services.triposr")
 
@@ -30,10 +29,14 @@ _torch = None
 _TSR = None
 _remove_background = None
 _resize_foreground = None
+_Image = None  # PIL Image
 
 if os.environ.get("TRIPOSR_DISABLE", "0") != "1":
     _triposr_path = Path(__file__).parent.parent.parent.parent / "vendor" / "triposr"
     try:
+        from PIL import Image as _PILImage
+        _Image = _PILImage
+        
         import torch as _torch_module
         _torch = _torch_module
         
