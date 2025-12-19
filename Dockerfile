@@ -15,14 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for layer caching
-COPY backend/pyproject.toml ./
+# Copy backend code
+COPY backend/ ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
-
-# Copy application code
-COPY backend/ ./
 
 # Create storage directory
 RUN mkdir -p /app/storage
