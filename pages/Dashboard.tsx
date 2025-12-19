@@ -10,6 +10,7 @@ import QuickStart from '../components/QuickStart';
 import ImageWorkflowForm from '../components/ImageWorkflowForm';
 import PromptWorkflowForm from '../components/PromptWorkflowForm';
 import OnboardingTips from '../components/OnboardingTips';
+import LockedFeatureOverlay, { isDemoMode } from '../components/LockedFeatureOverlay';
 import {
   ArrowRight,
   Layers3,
@@ -607,7 +608,13 @@ const Dashboard: React.FC = () => {
                     <UploadForm onSubmit={handleJobSubmit} presetMode={presetMode} presetModeSignal={presetModeSignal} />
                   )}
                   {activeTab === 'image' && (
-                    <ImageWorkflowForm onCreate={handleJobSubmit} />
+                    <div className="relative">
+                      <ImageWorkflowForm onCreate={handleJobSubmit} />
+                      {isDemoMode() && <LockedFeatureOverlay
+                        title="GPU Required"
+                        message="Image to 3D conversion requires GPU acceleration. Download the desktop app for full functionality."
+                      />}
+                    </div>
                   )}
                   {activeTab === 'prompt' && (
                     <PromptWorkflowForm onCreate={handleJobSubmit} />
