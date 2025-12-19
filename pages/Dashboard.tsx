@@ -31,6 +31,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { env } from '../config/env';
 
 type WorkflowTab = 'dxf' | 'image' | 'prompt';
 
@@ -195,7 +196,7 @@ const Dashboard: React.FC = () => {
       title: t('dashboard.quickLinks.documentation.title'),
       description: t('dashboard.quickLinks.documentation.description'),
       icon: <BookOpen className="w-5 h-5 text-primary-500" />,
-      href: 'http://localhost:8000/docs',
+      href: `${env.API_BASE_URL}/docs`,
     },
     {
       id: 'tutorials',

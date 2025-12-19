@@ -1,16 +1,19 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_API_URL?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_ENABLE_JOB_LOGS?: string;
   readonly VITE_ENABLE_LOCAL_JOBS?: string;
+  readonly VITE_DEMO_MODE?: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-const rawApiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+// Support both VITE_API_URL and VITE_API_BASE_URL for backwards compatibility
+const rawApiBase = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
 const rawLogging = import.meta.env.VITE_ENABLE_JOB_LOGS ?? 'true';
 const rawLocalFallback = import.meta.env.VITE_ENABLE_LOCAL_JOBS ?? 'true';
 
@@ -19,3 +22,4 @@ export const env = {
   ENABLE_JOB_LOGS: rawLogging !== 'false',
   ENABLE_LOCAL_JOBS: rawLocalFallback !== 'false',
 };
+

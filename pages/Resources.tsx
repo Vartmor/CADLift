@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, PlayCircle, HelpCircle, Users, ArrowUpRight, Terminal, Zap, Layers } from 'lucide-react';
+import { env } from '../config/env';
 
 const Resources: React.FC = () => {
   const { t } = useTranslation();
@@ -10,7 +11,7 @@ const Resources: React.FC = () => {
       key: 'docs',
       title: t('resourcesPage.cards.docs.title'),
       desc: t('resourcesPage.cards.docs.desc'),
-      href: 'http://localhost:8000/docs',
+      href: `${env.API_BASE_URL}/docs`,
       icon: Terminal,
       accent: 'from-cyan-500 to-blue-600',
       number: '01',
@@ -144,7 +145,7 @@ const Resources: React.FC = () => {
                 </span>
               </div>
               <a
-                href="http://localhost:8000/docs"
+                href={`${env.API_BASE_URL}/docs`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-sm hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
