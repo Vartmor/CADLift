@@ -13,7 +13,14 @@ import os
 import tempfile
 from typing import Iterable
 
-import cadquery as cq
+# CadQuery is optional - only needed for STEP export
+try:
+    import cadquery as cq
+    CADQUERY_AVAILABLE = True
+except ImportError:
+    cq = None
+    CADQUERY_AVAILABLE = False
+
 import ezdxf
 import numpy as np
 import trimesh

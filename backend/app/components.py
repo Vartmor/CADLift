@@ -3,12 +3,22 @@ Parametric component library for Phase 6.5.
 
 Provides parametric building components (doors, windows, furniture)
 that can be generated with custom dimensions and placed in 3D models.
+
+NOTE: This module requires CadQuery which is not installed in production.
+It is only available when running locally with CadQuery installed.
 """
 
 import math
-from typing import Literal
-import cadquery as cq
+from typing import Literal, Any
 import logging
+
+# CadQuery is optional - this module only works if CadQuery is installed
+try:
+    import cadquery as cq
+    CADQUERY_AVAILABLE = True
+except ImportError:
+    cq = None
+    CADQUERY_AVAILABLE = False
 
 logger = logging.getLogger("cadlift.components")
 
