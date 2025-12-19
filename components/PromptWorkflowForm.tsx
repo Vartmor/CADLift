@@ -183,8 +183,8 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
                 type="button"
                 onClick={() => setSelectedMode(config.id)}
                 className={`p-4 rounded-2xl border-2 text-left transition-all ${isSelected
-                    ? `${config.borderSelected} shadow-lg ${config.bgSelected}`
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  ? `${config.borderSelected} shadow-lg ${config.bgSelected}`
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -211,6 +211,8 @@ const PromptWorkflowForm: React.FC<PromptWorkflowFormProps> = ({ onCreate, onSuc
           {currentConfig.description}
         </p>
       </div>
+
+
 
       {/* Prompt Input */}
       <div>

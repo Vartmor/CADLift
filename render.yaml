@@ -1,0 +1,45 @@
+# Render Blueprint - CADLift
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API
+  - type: web
+    name: cadlift-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./cadlift.db
+      - key: STORAGE_PATH
+        value: /app/storage
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://cadlift.onrender.com,http://localhost:5173
+      - key: ENABLE_TASK_QUEUE
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in dashboard
+    disk:
+      name: cadlift-storage
+      mountPath: /app/storage
+      sizeGB: 1
+
+  # Frontend Static Site
+  - type: web
+    name: cadlift-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=31536000
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

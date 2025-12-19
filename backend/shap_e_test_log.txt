@@ -1,8 +1,0 @@
-C:\Users\Muhammed\Desktop\cadlift\docs\useful_projects\shap-e-main\shap_e\models\nn\checkpoint.py:31: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
-  @custom_fwd
-C:\Users\Muhammed\Desktop\cadlift\docs\useful_projects\shap-e-main\shap_e\models\nn\checkpoint.py:43: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
-  @custom_bwd
-C:\Users\Muhammed\Desktop\cadlift\docs\useful_projects\shap-e-main\shap_e\models\nn\checkpoint.py:61: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
-  @custom_fwd
-C:\Users\Muhammed\Desktop\cadlift\docs\useful_projects\shap-e-main\shap_e\models\nn\checkpoint.py:86: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
-  @custom_bwd

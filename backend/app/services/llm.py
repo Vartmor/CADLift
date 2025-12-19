@@ -151,7 +151,7 @@ class LLMService:
                         raise ValueError(f"rooms[{idx}].position coordinates must be numbers")
 
         if has_shapes:
-            allowed = {"box", "cylinder", "tapered_cylinder", "polygon", "thread", "revolve", "sweep"}
+            allowed = {"box", "cylinder", "tapered_cylinder", "polygon", "thread", "revolve", "sweep", "sphere"}
             for idx, shape in enumerate(response["shapes"]):
                 if not isinstance(shape, dict):
                     raise ValueError(f"shapes[{idx}] must be a dict")
@@ -206,7 +206,7 @@ class LLMService:
             "  \"extrude_height\": 110,\n"
             "  \"wall_thickness\": 3\n"
             "}\n"
-            "- Supported shapes: box(width,length,height), cylinder(radius,height), tapered_cylinder(bottom_radius,top_radius,height), polygon(vertices,height), thread(major_radius, pitch, turns, length), revolve(profile_vertices, angle_deg), sweep(profile_vertices, path_vertices).\n"
+            "- Supported shapes: box(width,length,height), cylinder(radius,height), tapered_cylinder(bottom_radius,top_radius,height), polygon(vertices,height), thread(major_radius, pitch, turns, length), revolve(profile_vertices, angle_deg), sweep(profile_vertices, path_vertices), sphere(radius).\n"
             "- Optional: hollow (bool), wall_thickness (mm), fillet (mm), position [x,y], rotate_deg, operation (\"union\" default, \"diff\" to cut from previous).\n"
             "- Use mm units. Pick the most relevant shape(s) for the prompt.\n\n"
             "Dimension Guidelines (use realistic sizes):\n"
@@ -221,12 +221,11 @@ class LLMService:
             "- For objects (mug, cup, bottle, vase, tool, part, screw), ALWAYS use shapes schema. Never return rooms for objects.\n"
             "- For tapered objects (cups, bottles, vases), use tapered_cylinder with different bottom_radius and top_radius.\n"
             "- Only use rooms schema if user clearly asks for building/room/floor/plan/house/office.\n"
-            "- For handles/curved attachments, use sweep with profile and path vertices.\n\n"
+            "- For curved surfaces, use revolve or sweep with appropriate profile and path vertices.\n\n"
             "Examples:\n"
             "Prompt: \"6x4m room\" -> {\"rooms\":[{\"name\":\"main\",\"width\":6000,\"length\":4000}],\"extrude_height\":3000,\"wall_thickness\":200}\n\n"
             "Prompt: \"A realistic coffee cup\" -> {\"shapes\":[{\"type\":\"tapered_cylinder\",\"bottom_radius\":60,\"top_radius\":75,\"height\":90,\"hollow\":true,\"wall_thickness\":3,\"fillet\":2}]}\n\n"
-            "Prompt: \"Coffee cup with handle\" -> {\"shapes\":[{\"type\":\"tapered_cylinder\",\"bottom_radius\":60,\"top_radius\":75,\"height\":90,\"hollow\":true,\"wall_thickness\":3,\"fillet\":2},{\"type\":\"sweep\",\"profile\":[[0,0],[4,0],[4,10],[0,10]],\"path\":[[75,0,20],[90,0,20],[90,0,55],[75,0,70]]}]}\n\n"
-            "Prompt: \"Water bottle, 200mm tall\" -> {\"shapes\":[{\"type\":\"tapered_cylinder\",\"bottom_radius\":62,\"top_radius\":65,\"height\":180,\"hollow\":true,\"wall_thickness\":2},{\"type\":\"cylinder\",\"radius\":30,\"height\":20,\"hollow\":true,\"wall_thickness\":2,\"position\":[0,0]}]}\n\n"
+            "Prompt: \"Water bottle, 200mm tall\" -> {\"shapes\":[{\"type\":\"tapered_cylinder\",\"bottom_radius\":62,\"top_radius\":65,\"height\":180,\"hollow\":true,\"wall_thickness\":2},{\"type\":\"cylinder\",\"radius\":30,\"height\":20,\"hollow\":true,\"wall_thickness\":2,\"position\":[0,0,180]}]}\n\n"
             "Prompt: \"M6 screw, 30mm long\" -> {\"shapes\":[{\"type\":\"thread\",\"major_radius\":3,\"pitch\":1,\"turns\":25,\"length\":25},{\"type\":\"cylinder\",\"radius\":5,\"height\":3,\"position\":[0,0]},{\"type\":\"cylinder\",\"radius\":1.5,\"height\":5,\"position\":[0,0]}]}\n\n"
             "Prompt: \"Power adapter\" -> {\"shapes\":[{\"type\":\"box\",\"width\":60,\"length\":80,\"height\":40,\"fillet\":5},{\"type\":\"box\",\"width\":15,\"length\":25,\"height\":10,\"position\":[0,80]}]}\n\n"
             "**OUTPUT ONLY VALID JSON. NO EXPLANATIONS.**"

@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # OpenSCAD configuration for precision CAD
     openscad_path: str | None = None  # Auto-detect if None
     enable_precision_cad: bool = True
+    
+    # CAD Engine selection: "auto", "cadquery", "solidpython"
+    # - auto: Use CadQuery if available, else SolidPython
+    # - cadquery: B-Rep modeling with true curves (requires conda install)
+    # - solidpython: Mesh-based modeling (fast, always available)
+    cad_engine: str = "solidpython"
 
     @property
     def cors_origins_list(self) -> List[str]:

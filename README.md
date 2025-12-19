@@ -11,6 +11,8 @@
 
 [🎯 Live Demo](#) · [📖 Docs](backend/docs/) · [🐛 Report Bug](https://github.com/vartmor/cadlift/issues)
 
+🌍 [Türkçe](README.tr.md) | English
+
 </div>
 
 ---
@@ -69,8 +71,23 @@
 | **Frontend** | React 18, TypeScript, Tailwind CSS, Vite |
 | **Backend** | FastAPI, Python 3.11+, SQLAlchemy, Celery |
 | **AI Models** | Stable Diffusion, TripoSR, OpenAI (optional) |
-| **CAD Tools** | ezdxf, co2tools, ODA Converter, trimesh, CadQuery |
+| **CAD Tools** | ezdxf, co2tools, ODA Converter, trimesh, SolidPython |
 | **Storage** | Local filesystem, PostgreSQL/SQLite |
+
+---
+
+## ⚠️ Local-Only Features
+
+Some features require local installation due to GPU requirements:
+
+| Feature | Requirement | Cloud Available |
+|---------|-------------|--------|
+| DWG/DXF to 3D | ODA Converter | ✅ |
+| Prompt to 3D (Precision) | OpenAI API | ✅ |
+| Prompt to 3D (Creative) | TripoSR + SD | ❌ Local only |
+| Image to 3D | TripoSR | ❌ Local only |
+
+> **Note:** For GPU-powered features, please [run CADLift locally](#-quick-start).
 
 ---
 

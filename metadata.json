@@ -1,5 +1,0 @@
-{
-  "name": "CADLift",
-  "description": "A web application to convert 2D CAD drawings (DXF) into 3D models using rules and AI assistance.",
-  "requestFramePermissions": []
-}

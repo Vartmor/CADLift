@@ -25,7 +25,7 @@ from app.services.triposr import get_triposr_service, TripoSRError
 from app.services.stable_diffusion import get_stable_diffusion_service, StableDiffusionError
 import math
 import ezdxf
-import cadquery as cq
+
 from io import BytesIO
 
 def _build_image_prompt(user_prompt: str) -> str:
@@ -56,19 +56,12 @@ async def run_precision_cad(job: Job, session: AsyncSession, prompt_text: str, p
     """
     Run precision CAD generation using SolidPython.
     
-    This path generates true parametric CAD solids suitable for manufacturing,
-    as opposed to the AI mesh path which produces organic but imprecise shapes.
+    Generates parametric CAD models from LLM-parsed instructions.
     """
     from app.services.solidpython_service import get_solidpython_service, SolidPythonError
     from app.services.mesh_converter import get_mesh_converter, MeshConversionError
     
-    solidpy = get_solidpython_service()
-    
-    if not solidpy.is_available():
-        raise CADLiftError(
-            ErrorCode.AI_SERVICE_UNAVAILABLE,
-            details="SolidPython service not available for precision CAD"
-        )
+    solidpython = get_solidpython_service()
     
     await _update_progress(job, session, 10)
     
@@ -78,98 +71,91 @@ async def run_precision_cad(job: Job, session: AsyncSession, prompt_text: str, p
     
     await _update_progress(job, session, 30)
     
-    # Generate OpenSCAD code and render to STL
-    try:
-        logger.info("Generating precision CAD model")
+    # Generate CAD model using SolidPython
+    logger.info("Generating precision CAD model with SolidPython")
+    outputs: dict[str, bytes] = {}
+    
+    if solidpython.can_render():
+        stl_bytes = solidpython.render_to_stl(instructions)
+        await _update_progress(job, session, 60)
         
-        if solidpy.can_render():
-            stl_bytes = solidpy.render_to_stl(instructions)
-            await _update_progress(job, session, 60)
-            
-            # Convert STL to other formats
-            converter = get_mesh_converter()
-            
-            outputs: dict[str, bytes] = {"stl": stl_bytes}
-            
-            # Convert to GLB for viewer
-            try:
-                outputs["glb"] = converter.convert(stl_bytes, "stl", "glb")
-            except MeshConversionError as e:
-                logger.warning(f"GLB conversion failed: {e}")
-            
-            # Convert to STEP for manufacturing
-            try:
-                outputs["step"] = converter.convert(stl_bytes, "stl", "step")
-            except MeshConversionError as e:
-                logger.warning(f"STEP conversion failed: {e}")
-            
-            # Convert to DXF for 2D reference
-            try:
-                outputs["dxf"] = converter.convert(stl_bytes, "stl", "dxf")
-            except MeshConversionError as e:
-                logger.warning(f"DXF conversion failed: {e}")
-            
-            await _update_progress(job, session, 80)
-        else:
-            # No OpenSCAD - just generate SCAD code
-            scad_code = solidpy.generate_scad(instructions)
-            outputs = {"scad": scad_code.encode("utf-8")}
-            logger.warning("OpenSCAD not available - only SCAD code generated")
-            await _update_progress(job, session, 80)
+        converter = get_mesh_converter()
+        outputs["stl"] = stl_bytes
         
-        # Save output files
-        saved_files: dict[str, FileModel] = {}
-        for fmt, data in outputs.items():
-            if not data:
-                continue
-            
-            role = "output" if fmt in {"glb", "stl", "step"} else "output_aux"
-            filename = f"precision_model.{fmt}"
-            storage_key, size = storage_service.save_bytes(
-                data,
-                role=role,
-                job_id=job.id,
-                filename=filename,
-            )
-            file_rec = FileModel(
-                user_id=job.user_id,
-                job_id=job.id,
-                role=role,
-                storage_key=storage_key,
-                original_name=filename,
-                mime_type=f"application/{fmt}",
-                size_bytes=size,
-            )
-            session.add(file_rec)
-            await session.flush()
-            saved_files[fmt] = file_rec
+        # Convert to GLB for viewer
+        try:
+            outputs["glb"] = converter.convert(stl_bytes, "stl", "glb")
+        except MeshConversionError as e:
+            logger.warning(f"GLB conversion failed: {e}")
         
-        # Set primary output
-        primary = saved_files.get("step") or saved_files.get("glb") or saved_files.get("stl")
-        if primary:
-            job.output_file_id = primary.id
+        # Convert to STEP for manufacturing
+        try:
+            outputs["step"] = converter.convert(stl_bytes, "stl", "step")
+        except MeshConversionError as e:
+            logger.warning(f"STEP conversion failed: {e}")
         
-        # Update job params with file IDs
-        merged_params = dict(params)
-        merged_params["precision_metadata"] = {
-            "pipeline": "solidpython",
-            "instructions": instructions,
-        }
-        for fmt, file_rec in saved_files.items():
-            merged_params[f"{fmt}_file_id"] = file_rec.id
+        # Convert to DXF for 2D reference
+        try:
+            outputs["dxf"] = converter.convert(stl_bytes, "stl", "dxf")
+        except MeshConversionError as e:
+            logger.warning(f"DXF conversion failed: {e}")
+    else:
+        # No OpenSCAD - just generate SCAD code
+        scad_code = solidpython.generate_scad(instructions)
+        outputs = {"scad": scad_code.encode("utf-8")}
+        logger.warning("OpenSCAD not available - only SCAD code generated")
+    
+    await _update_progress(job, session, 80)
+    
+    # Save output files
+    saved_files: dict[str, FileModel] = {}
+    for fmt, data in outputs.items():
+        if not data:
+            continue
         
-        job.params = merged_params
-        job.status = "completed"
-        job.progress = 100
-        job.error_code = None
-        job.error_message = None
-        
-        await session.commit()
-        logger.info("Precision CAD generation completed successfully")
-        
-    except SolidPythonError as e:
-        logger.error(f"Precision CAD generation failed: {e}")
-        raise CADLiftError(ErrorCode.GEO_STEP_GENERATION_FAILED, details=str(e))
+        role = "output" if fmt in {"glb", "stl", "step"} else "output_aux"
+        filename = f"precision_model.{fmt}"
+        storage_key, size = storage_service.save_bytes(
+            data,
+            role=role,
+            job_id=job.id,
+            filename=filename,
+        )
+        file_rec = FileModel(
+            user_id=job.user_id,
+            job_id=job.id,
+            role=role,
+            storage_key=storage_key,
+            original_name=filename,
+            mime_type=f"application/{fmt}",
+            size_bytes=size,
+        )
+        session.add(file_rec)
+        await session.flush()
+        saved_files[fmt] = file_rec
+    
+    # Set primary output
+    primary = saved_files.get("step") or saved_files.get("glb") or saved_files.get("stl")
+    if primary:
+        job.output_file_id = primary.id
+    
+    # Update job params with file IDs and metadata
+    merged_params = dict(params)
+    merged_params["precision_metadata"] = {
+        "pipeline": "solidpython",
+        "instructions": instructions,
+    }
+    for fmt, file_rec in saved_files.items():
+        merged_params[f"{fmt}_file_id"] = file_rec.id
+    
+    job.params = merged_params
+    job.status = "completed"
+    job.progress = 100
+    job.error_code = None
+    job.error_message = None
+    
+    await session.commit()
+    logger.info("Precision CAD generation completed successfully (engine: solidpython)")
 
 
 async def _generate_precision_instructions(prompt_text: str, params: dict) -> dict:
