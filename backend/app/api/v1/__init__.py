@@ -8,3 +8,9 @@ router_v1 = APIRouter(prefix="/api/v1")
 router_v1.include_router(auth_router)
 router_v1.include_router(jobs_router)
 router_v1.include_router(files_router)
+
+@router_v1.get("/health", tags=["health"])
+async def health_check():
+    """Health check endpoint for Render."""
+    return {"status": "ok", "version": "1.0.0"}
+
