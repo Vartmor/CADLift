@@ -2,7 +2,9 @@
  * Auth API service - communicates with backend /api/v1/auth endpoints
  */
 
-const API_BASE = '/api/v1/auth';
+// Use environment variable for API URL in production, fallback to relative for dev
+const API_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE = `${API_URL}/api/v1/auth`;
 
 export interface User {
     id: string;
