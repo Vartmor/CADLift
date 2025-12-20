@@ -555,6 +555,7 @@ const resources = {
       },
       navigation: {
         dashboard: 'Panel',
+        dashboard_btn: 'Panele Git',
         projects: 'Projelerim',
         docs: 'Dokümantasyon',
         resources: 'Kaynaklar',
@@ -842,6 +843,8 @@ const resources = {
       profile: {
         title: 'Profiliniz',
         memberSince: 'Üyelik başlangıcı',
+        appVersion: 'Uygulama Sürümü',
+        localConversions: 'Yerel Dönüşümler',
         openSource: 'Açık Kaynak',
         settings: {
           title: 'Ayarlar',
@@ -849,7 +852,29 @@ const resources = {
           language: 'Dil',
           account: 'Hesap',
           security: 'Güvenlik',
-          dangerZone: 'Tehlikeli Bölge'
+          dangerZone: 'Tehlikeli Bölge',
+          system: 'Sistem Kaynakları',
+          models: 'Yapay Zeka Modelleri'
+        },
+        system: {
+          title: 'Sistem Kaynakları',
+          gpu: 'Algılanan GPU',
+          vram: 'VRAM Tahsisi',
+          vramLimit: 'Maks VRAM Limiti',
+          cpuFallback: 'CPU Yedekleme',
+          lowVram: 'Düşük VRAM Modu',
+          autoDetect: 'Donanımı Otomatik Algıla'
+        },
+        models: {
+          title: 'Yapay Zeka Model Yönetimi',
+          path: 'Model Depolama Yolu',
+          autoUpdate: 'Modelleri Otomatik Güncelle',
+          purge: 'Önbelleği Temizle',
+          verify: 'Bütünlüğü Doğrula',
+          status: 'Durum',
+          ready: 'Hazır',
+          missing: 'Eksik',
+          downloading: 'İndiriliyor...'
         },
         theme: {
           light: 'Açık',
@@ -1028,6 +1053,7 @@ const resources = {
       },
       navigation: {
         dashboard: 'Dashboard',
+        dashboard_btn: 'Zum Dashboard',
         projects: 'Meine Projekte',
         docs: 'Dokumentation',
         resources: 'Ressourcen',
@@ -1317,35 +1343,96 @@ const resources = {
       profile: {
         title: 'Ihr Profil',
         memberSince: 'Mitglied seit',
+        appVersion: 'App-Version',
+        localConversions: 'Lokale Konvertierungen',
         openSource: 'Open Source',
         settings: {
           title: 'Einstellungen',
           appearance: 'Erscheinungsbild',
           language: 'Sprache',
           account: 'Konto',
+          security: 'Sicherheit',
+          dangerZone: 'Gefahrenzone',
+          system: 'Systemressourcen',
+          models: 'KI-Modelle'
+        },
+        system: {
+          title: 'Systemressourcen',
+          gpu: 'Erkannte GPU',
+          vram: 'VRAM-Zuweisung',
+          vramLimit: 'Max. VRAM-Limit',
+          cpuFallback: 'CPU-Fallback',
+          lowVram: 'Niedriger VRAM-Modus',
+          autoDetect: 'Hardware automatisch erkennen'
+        },
+        models: {
+          title: 'KI-Modellverwaltung',
+          path: 'Modellspeicherpfad',
+          autoUpdate: 'Modelle automatisch aktualisieren',
+          purge: 'Cache leeren',
+          verify: 'Integrität prüfen',
+          status: 'Status',
+          ready: 'Bereit',
+          missing: 'Fehlt',
+          downloading: 'Wird heruntergeladen...'
+        },
+        theme: {
+          light: 'Hell',
+          dark: 'Dunkel'
+        },
+        actions: {
           editProfile: 'Profil bearbeiten',
-          changePassword: 'Passwort ändern'
-        },
-        preferences: {
-          title: 'Einstellungen',
-          theme: 'Thema',
-          themeLight: 'Hell',
-          themeDark: 'Dunkel'
-        },
-        security: {
-          title: 'Sicherheit',
+          changePassword: 'Passwort ändern',
           twoFactor: 'Zwei-Faktor-Authentifizierung',
           activeSessions: 'Aktive Sitzungen',
-          loginHistory: 'Anmeldeverlauf'
-        },
-        activity: {
-          title: 'Letzte Aktivität',
-          empty: 'Noch keine Aktivität'
-        },
-        danger: {
-          title: 'Gefahrenzone',
+          loginHistory: 'Anmeldeverlauf',
           deleteData: 'Alle Daten löschen',
           deleteAccount: 'Konto löschen'
+        },
+        modals: {
+          editProfile: {
+            title: 'Profil bearbeiten',
+            displayName: 'Anzeigename',
+            save: 'Änderungen speichern',
+            saving: 'Wird gespeichert...',
+            success: 'Profil erfolgreich aktualisiert!',
+            error: 'Profil konnte nicht aktualisiert werden'
+          },
+          changePassword: {
+            title: 'Passwort ändern',
+            current: 'Aktuelles Passwort',
+            new: 'Neues Passwort',
+            confirm: 'Passwort bestätigen',
+            hint: 'Mindestens 8 Zeichen mit Groß-/Kleinbuchstaben und Zahlen',
+            save: 'Passwort aktualisieren',
+            saving: 'Wird aktualisiert...',
+            success: 'Passwort erfolgreich geändert!',
+            mismatch: 'Passwörter stimmen nicht überein',
+            error: 'Passwort konnte nicht geändert werden'
+          },
+          sessions: {
+            title: 'Aktive Sitzungen',
+            current: 'Aktuelle Sitzung',
+            device: 'Gerät',
+            browser: 'Browser',
+            location: 'Standort',
+            lastActive: 'Letzte Aktivität',
+            revokeAll: 'Alle anderen Sitzungen widerrufen'
+          },
+          loginHistory: {
+            title: 'Anmeldeverlauf',
+            recentLogins: 'Letzte Anmeldungen',
+            success: 'Erfolgreich',
+            failed: 'Fehlgeschlagen'
+          },
+          deleteConfirm: {
+            title: 'Sind Sie sicher?',
+            warning: 'Diese Aktion kann nicht rückgängig gemacht werden. Ihre Daten werden dauerhaft gelöscht.',
+            cancel: 'Abbrechen',
+            confirm: 'Ja, löschen'
+          },
+          comingSoon: 'Demnächst',
+          twoFactorMessage: 'Die Zwei-Faktor-Authentifizierung wird in einem zukünftigen Update verfügbar sein.'
         }
       },
       footer: {

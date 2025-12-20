@@ -14,7 +14,7 @@ const QuickStart: React.FC<QuickStartProps> = ({ onCad, onImage, onPrompt, isOpe
   const { t } = useTranslation();
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-[100]">
       {isOpen && (
         <div className="mb-3 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl p-4 space-y-3 animate-fade-in">
           <div>

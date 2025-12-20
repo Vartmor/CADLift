@@ -1,19 +1,10 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Moon, Sun, Box, Languages, ChevronRight, User, ChevronDown, Check } from 'lucide-react';
 import { triggerLanguageSwitch } from './Layout';
-
-type NavItem = {
-  key: string;
-  label: string;
-  path?: string;
-  hash?: string;
-  external?: boolean;
-  href?: string;
-};
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -50,30 +41,6 @@ const Header: React.FC = () => {
     setLangMenuOpen(false);
   };
 
-  const navItems: NavItem[] = useMemo(() => ([
-    { key: 'about', label: t('navigation.about'), path: '/about' },
-  ]), [t]);
-
-  const isActive = (item: NavItem) => Boolean(item.path && !item.hash && location.pathname === item.path);
-
-  const handleNavigate = (item: NavItem) => {
-    if (item.external && item.href) {
-      if (typeof window !== 'undefined') {
-        window.open(item.href, '_blank', 'noopener,noreferrer');
-      }
-      return;
-    }
-    if (item.path) {
-      navigate(item.path);
-      if (item.hash) {
-        setTimeout(() => {
-          if (typeof document === 'undefined') return;
-          const target = document.querySelector(item.hash!);
-          target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 150);
-      }
-    }
-  };
 
   const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
 
@@ -114,11 +81,11 @@ const Header: React.FC = () => {
 
         {/* Navigation Desktop */}
         {!isAuthPage && (
-          <nav className="hidden md:flex items-center gap-4">
+          <nav className="hidden md:flex items-center gap-3">
             {location.pathname !== '/dashboard' && (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="group relative px-6 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden"
+                className="group relative px-5 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 <span className="relative z-10">{t('navigation.dashboard_btn')}</span>
@@ -126,21 +93,15 @@ const Header: React.FC = () => {
               </button>
             )}
 
-            <div className="flex items-center bg-slate-100/50 dark:bg-slate-800/50 px-2 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50">
-              {navItems.map((item) => (
-                <button
-                  type="button"
-                  key={item.key}
-                  onClick={() => handleNavigate(item)}
-                  className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isActive(item)
-                    ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
-                    }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            {/* About button - only on Home page */}
+            {location.pathname === '/' && (
+              <button
+                onClick={() => navigate('/about')}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-slate-900 dark:hover:text-white transition-all"
+              >
+                {t('navigation.about')}
+              </button>
+            )}
           </nav>
         )}
 

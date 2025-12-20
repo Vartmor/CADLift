@@ -8,7 +8,6 @@ import {
   Linkedin,
   ExternalLink,
   Sparkles,
-  FileText,
   Users,
   Heart
 } from 'lucide-react';
@@ -23,13 +22,6 @@ const Footer: React.FC = () => {
     { labelKey: 'footer.links.dwgTo3d', href: '/dashboard' },
     { labelKey: 'footer.links.imageTo3d', href: '/dashboard' },
     { labelKey: 'footer.links.promptTo3d', href: '/dashboard' },
-  ];
-
-  const resourceLinks = [
-    { labelKey: 'footer.links.apiDocs', href: 'http://localhost:8000/docs', external: true },
-    { labelKey: 'footer.links.resources', href: '/resources' },
-    { labelKey: 'footer.links.faq', href: '/resources#faq' },
-    { labelKey: 'footer.links.community', href: '/resources#community' },
   ];
 
   const companyLinks = [
@@ -112,7 +104,7 @@ const Footer: React.FC = () => {
             </div>
 
             {/* Links grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 lg:gap-16">
+            <div className="grid grid-cols-2 gap-8 lg:gap-16">
               {/* Product */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
@@ -121,19 +113,6 @@ const Footer: React.FC = () => {
                 </h4>
                 <ul className="space-y-3">
                   {productLinks.map((link) => (
-                    <li key={link.labelKey}>{renderLink(link)}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Resources */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
-                  <FileText size={12} />
-                  {t('footer.sections.resources')}
-                </h4>
-                <ul className="space-y-3">
-                  {resourceLinks.map((link) => (
                     <li key={link.labelKey}>{renderLink(link)}</li>
                   ))}
                 </ul>

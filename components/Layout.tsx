@@ -73,12 +73,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* Dynamic Background Elements */}
+      {/* Global Background Grid - Seamless across all pages */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-grid-slate-200 dark:bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-100 dark:opacity-10" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/20 dark:bg-primary-600/3 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-20 animate-blob" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/3 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-indigo-400/20 dark:bg-indigo-600/3 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-20 animate-blob animation-delay-4000" />
+        {/* Grid Pattern - Light Mode */}
+        <div
+          className="absolute inset-0 dark:hidden"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            maskImage: 'linear-gradient(to bottom, black, black 80%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black, black 80%, transparent 100%)'
+          }}
+        />
+        {/* Grid Pattern - Dark Mode */}
+        <div
+          className="absolute inset-0 hidden dark:block"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            maskImage: 'linear-gradient(to bottom, black, black 80%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black, black 80%, transparent 100%)'
+          }}
+        />
+        {/* Ambient Blobs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/15 dark:bg-primary-600/5 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-60 dark:opacity-30 animate-blob" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-400/15 dark:bg-blue-600/5 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-60 dark:opacity-30 animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-indigo-400/15 dark:bg-indigo-600/5 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-60 dark:opacity-30 animate-blob animation-delay-4000" />
       </div>
 
       <div className="relative z-10 flex flex-col flex-grow">

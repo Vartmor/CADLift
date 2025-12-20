@@ -19,10 +19,6 @@ import {
   Download,
   Eye,
   RefreshCw,
-  BookOpen,
-  PlayCircle,
-  HelpCircle,
-  LifeBuoy,
   Terminal,
   Sparkles,
   CircleDot,
@@ -189,37 +185,6 @@ const Dashboard: React.FC = () => {
   ]), [t]);
 
   const recentJobs = useMemo<JobRecord[]>(() => jobHistory.slice(0, 10), [jobHistory]);
-
-  const quickLinks = useMemo(() => ([
-    {
-      id: 'docs',
-      title: t('dashboard.quickLinks.documentation.title'),
-      description: t('dashboard.quickLinks.documentation.description'),
-      icon: <BookOpen className="w-5 h-5 text-primary-500" />,
-      href: `${env.API_BASE_URL}/docs`,
-    },
-    {
-      id: 'tutorials',
-      title: t('dashboard.quickLinks.tutorials.title'),
-      description: t('dashboard.quickLinks.tutorials.description'),
-      icon: <PlayCircle className="w-5 h-5 text-purple-500" />,
-      href: '/resources#videos',
-    },
-    {
-      id: 'faq',
-      title: t('dashboard.quickLinks.faq.title'),
-      description: t('dashboard.quickLinks.faq.description'),
-      icon: <HelpCircle className="w-5 h-5 text-amber-500" />,
-      href: '/resources#faq',
-    },
-    {
-      id: 'support',
-      title: t('dashboard.quickLinks.support.title'),
-      description: t('dashboard.quickLinks.support.description'),
-      icon: <LifeBuoy className="w-5 h-5 text-blue-500" />,
-      href: '/resources#community',
-    },
-  ]), [t]);
 
   const statusStyles: Record<JobState, { bg: string; dot: string; text: string }> = {
     [JobState.COMPLETED]: {
@@ -707,32 +672,6 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      <section id="resources" className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-bold uppercase tracking-[0.4em] text-primary-500">{t('dashboard.quickLinks.title')}</p>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white">{t('dashboard.quickLinks.subtitle')}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {quickLinks.map((link) => (
-            <a
-              key={link.id}
-              href={link.href}
-              target={link.href?.startsWith('http') ? '_blank' : undefined}
-              rel="noreferrer"
-              className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur flex items-start gap-4 hover:-translate-y-1 transition-transform shadow-sm"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                {link.icon}
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{link.title}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{link.description}</p>
-              </div>
-            </a>
-          ))}
         </div>
       </section>
 
