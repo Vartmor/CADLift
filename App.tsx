@@ -12,7 +12,6 @@ const About = lazy(() => import('./pages/About'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
-const Resources = lazy(() => import('./pages/Resources'));
 const Profile = lazy(() => import('./pages/Profile'));
 
 // Loading fallback component
@@ -38,7 +37,6 @@ const App: React.FC = () => {
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/signup" element={<SignUp />} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/resources" element={<Resources />} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/about" element={<About />} />
                   {/* Catch-all route for 404 */}

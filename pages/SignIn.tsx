@@ -141,23 +141,7 @@ const SignIn: React.FC = () => {
               </button>
             </form>
 
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                <span className="bg-white dark:bg-slate-900 px-4 text-slate-400 font-bold">{t('auth.signIn.or')}</span>
-              </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm cursor-pointer z-20"
-            >
-              <GoogleIcon />
-              <span>{t('auth.signIn.googleSignIn')}</span>
-            </button>
 
             <div className="text-center mt-8 pt-2">
               <p className="text-slate-500 dark:text-slate-400 text-sm">

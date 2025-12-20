@@ -161,7 +161,7 @@ const About: React.FC = () => {
           {t('about.cta.subtitle')}
         </p>
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => window.open('https://github.com/Start-Up-Week/cadlift', '_blank')}
           className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-slate-900 bg-white rounded-xl hover:bg-slate-100 hover:scale-105 transition-all duration-200 shadow-xl"
         >
           {t('about.cta.button')}

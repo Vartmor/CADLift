@@ -51,9 +51,6 @@ const Header: React.FC = () => {
   };
 
   const navItems: NavItem[] = useMemo(() => ([
-    { key: 'dashboard', label: t('navigation.dashboard'), path: '/dashboard' },
-    { key: 'projects', label: t('navigation.projects'), path: '/dashboard', hash: '#activity' },
-    { key: 'resources', label: t('navigation.resources'), path: '/resources' },
     { key: 'about', label: t('navigation.about'), path: '/about' },
   ]), [t]);
 
@@ -117,20 +114,31 @@ const Header: React.FC = () => {
 
         {/* Navigation Desktop */}
         {!isAuthPage && (
-          <nav className="hidden md:flex items-center bg-slate-100/50 dark:bg-slate-800/50 px-2 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50">
-            {navItems.map((item) => (
-              <button
-                type="button"
-                key={item.key}
-                onClick={() => handleNavigate(item)}
-                className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isActive(item)
-                  ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
-                  }`}
-              >
-                {item.label}
-              </button>
-            ))}
+          <nav className="hidden md:flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="group relative px-6 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <span className="relative z-10">{t('navigation.dashboard_btn')}</span>
+              <ChevronRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <div className="flex items-center bg-slate-100/50 dark:bg-slate-800/50 px-2 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50">
+              {navItems.map((item) => (
+                <button
+                  type="button"
+                  key={item.key}
+                  onClick={() => handleNavigate(item)}
+                  className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isActive(item)
+                    ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                    }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </nav>
         )}
 
@@ -185,27 +193,20 @@ const Header: React.FC = () => {
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
 
           {/* User Button (when authenticated) / Sign In (when not) */}
-          {isAuthenticated ? (
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition"
-            >
-              <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 text-xs font-bold">
+          {/* Avatar Only Logic */}
+          <button
+            onClick={() => isAuthenticated ? navigate('/profile') : navigate('/signin')}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-md hover:scale-105 transition-all overflow-hidden"
+            title={isAuthenticated ? 'Profile' : 'Sign In'}
+          >
+            {isAuthenticated ? (
+              <div className="w-full h-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
                 {getUserInitials()}
               </div>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[100px] truncate">
-                {user?.display_name || 'Profile'}
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('/signin')}
-              className={`flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg hover:shadow-xl cursor-pointer ${isAuthPage ? 'hidden' : ''}`}
-            >
-              <span className="hidden sm:inline">Sign In</span>
-              <ChevronRight size={14} className="opacity-60" />
-            </button>
-          )}
+            ) : (
+              <User size={20} className="text-slate-500 dark:text-slate-400" />
+            )}
+          </button>
         </div>
       </div>
     </header>

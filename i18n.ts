@@ -58,14 +58,13 @@ const resources = {
       },
       navigation: {
         dashboard: 'Dashboard',
-        projects: 'My Projects',
+        dashboard_btn: 'Go to Dashboard',
         docs: 'Documentation',
-        resources: 'Resources',
         about: 'About'
       },
       home: {
         hero: {
-          badge: 'AI-Powered 3D Generation',
+          badge: 'Free & Open Source',
           title1: 'Turn',
           title2: 'Anything',
           title3: 'Into',
@@ -75,9 +74,9 @@ const resources = {
           subtitleTo: 'to',
           subtitleImages: 'images',
           subtitlePrompts: 'text prompts',
-          subtitleEnd: '— generate production-ready 3D models in seconds.',
-          primaryCta: 'Start Creating',
-          secondaryCta: 'Explore Features',
+          subtitleEnd: '— generate production-ready 3D models locally.',
+          primaryCta: 'Open Dashboard',
+          secondaryCta: 'View on GitHub',
           inputTypes: {
             dwg: 'DWG / DXF',
             images: 'Images',
@@ -88,23 +87,23 @@ const resources = {
           badge: 'Powerful Features',
           title: 'Three Ways to',
           titleAccent: 'Create',
-          subtitle: 'Choose your input method. We handle the rest.',
+          subtitle: 'Choose your input method. Everything runs locally on your machine.',
           cad: {
             title: 'DWG/DXF to 3D',
-            description: 'Upload AutoCAD files directly. We auto-detect layers, walls, and shapes — then extrude to 3D models.',
-            features: ['Native DWG support via ODA', 'All DXF versions', 'Auto layer detection', 'Closed shape extrusion']
+            description: 'Upload AutoCAD files directly. Layer detection and extrusion happens instantly on your device.',
+            features: ['Native DWG support', 'Privacy focused', 'Auto layer detection', 'Closed shape extrusion']
           },
           image: {
             title: 'Image to 3D',
-            description: 'Upload any image — photos, sketches, renders. Our AI reconstructs it in 3D using TripoSR.'
+            description: 'Transform any image into a detailed 3D model using local AI models.'
           },
           prompt: {
             title: 'Prompt to 3D',
-            description: 'Just describe it. Stable Diffusion generates an image, then TripoSR builds your 3D model.'
+            description: 'Just describe it. AI generates an image and builds your user model entirely offline.'
           },
           viewer: {
             title: '3D Viewer',
-            description: 'Preview before download'
+            description: 'Preview before export'
           },
           export: {
             title: 'Multi-Format',
@@ -116,17 +115,17 @@ const resources = {
           titleAccent: 'Works',
           subtitle: 'Three simple steps to 3D',
           steps: [
-            { title: 'Upload or Describe', description: 'Drop your CAD file, image, or type a prompt' },
-            { title: 'AI Processing', description: 'Our engines detect geometry and generate 3D' },
-            { title: 'View & Download', description: 'Preview in 3D viewer, export in any format' }
+            { title: 'Download App', description: 'Get the desktop app from GitHub to start' },
+            { title: 'Load Input', description: 'Drop your CAD file, image, or type a prompt' },
+            { title: 'Local AI Processing', description: 'Your GPU generates the 3D model instantly' }
           ]
         },
         cta: {
-          badge: 'Start for free',
+          badge: '100% Free & Open Source',
           title: 'Ready to',
-          titleAccent: 'Create',
-          subtitle: 'Transform CAD files, images, or ideas into 3D models. No credit card required.',
-          button: 'Open Dashboard'
+          titleAccent: 'Contribute',
+          subtitle: 'Join our community on GitHub. Star the repo, fork the code, or download the latest release to get started.',
+          button: 'Get Desktop App'
         }
       },
       resourcesPage: {
@@ -449,27 +448,27 @@ const resources = {
         poweredBy: 'Powered by'
       },
       about: {
-        badge: 'AI-Powered 3D Generation',
+        badge: 'Free & Open Source Software',
         hero: {
-          title1: 'Transform',
-          titleHighlight: 'Anything',
-          title2: 'Into 3D',
-          subtitle: 'CADLift is an open-source platform that converts CAD files, images, and text prompts into production-ready 3D models using AI and advanced geometry processing.'
+          title1: 'The',
+          titleHighlight: 'Open Source',
+          title2: '3D Engine',
+          subtitle: 'CADLift is a 100% free and open-source platform that runs locally on your machine. No cloud subscriptions, no data tracking.'
         },
         workflows: {
           title: 'Three Ways to Create 3D',
           subtitle: 'Choose the workflow that fits your needs.',
           dwg: {
             title: 'DWG/DXF to 3D',
-            description: 'Upload AutoCAD files (DWG or DXF) and we extrude closed shapes into 3D models. Supports walls, doors, windows detection.'
+            description: 'Upload AutoCAD files (DWG or DXF) and we extrude closed shapes into 3D models locally.'
           },
           image: {
             title: 'Image to 3D',
-            description: 'Transform any 2D image into a detailed 3D model using TripoSR AI. Works with photos, sketches, and renders.'
+            description: 'Transform any 2D image into a detailed 3D model using local AI models.'
           },
           prompt: {
             title: 'Prompt to 3D',
-            description: 'Describe your idea in text. Our AI generates an image with Stable Diffusion, then converts it to 3D.'
+            description: 'Describe your idea in text. Stable Diffusion generates an image, then TripoSR builds your 3D model offline.'
           }
         },
         features: {
@@ -477,22 +476,22 @@ const resources = {
           viewer: 'Built-in 3D Viewer',
           export: 'GLB, STL, DXF, STEP Export',
           realtime: 'Real-Time Progress',
-          local: 'Local Processing'
+          local: '100% Local Processing'
         },
         tech: {
           title: 'Built With',
-          subtitle: 'Modern, open-source technologies.',
+          subtitle: 'Powered by modern open-source technologies.',
           frontend: 'Frontend',
           backend: 'Backend',
           ai: 'AI Models',
           cad: 'CAD Tools'
         },
         cta: {
-          title: 'Ready to Try?',
-          subtitle: 'Start generating 3D models from CAD files, images, or text prompts right now.',
-          button: 'Open Dashboard'
+          title: 'Ready to Contribute?',
+          subtitle: 'Join us on GitHub to shape the future of open-source CAD tools.',
+          button: 'View on GitHub'
         },
-        disclaimer: 'CADLift is an open-source project. AI features require model downloads on first use.'
+        disclaimer: 'CADLift is an open-source project. Models run locally on your GPU.'
       }
     }
   },

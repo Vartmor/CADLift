@@ -195,7 +195,7 @@ const Home: React.FC = () => {
             </button>
 
             <button
-              onClick={scrollToFeatures}
+              onClick={() => window.open('https://github.com/Start-Up-Week/cadlift', '_blank')}
               className="group px-10 py-5 glass-card text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-lg hover:border-primary-500 dark:hover:border-primary-400 shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 hover-lift"
             >
               {t('home.hero.secondaryCta')}
@@ -411,54 +411,32 @@ const Home: React.FC = () => {
 
       {/* === FINAL CTA === */}
       <div className="py-32 px-4 relative overflow-hidden">
-
         {/* Dark gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
-
         {/* Subtle glow effects */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/20 rounded-full blur-[150px] animate-morph" />
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-violet-500/15 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-0 left-0 w-[250px] h-[250px] bg-purple-600/15 rounded-full blur-[100px] animate-pulse animation-delay-2000" />
         </div>
 
-        {/* Floating stars/particles */}
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white/60 rounded-full animate-pulse"
-            style={{
-              top: `${20 + i * 10}%`,
-              left: `${10 + i * 12}%`,
-              animationDelay: `${i * 0.3}s`,
-            }}
-          />
-        ))}
-
         <div className="max-w-4xl mx-auto text-center relative z-10 reveal">
-
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-5 py-2.5 mb-10 rounded-full glass backdrop-blur-xl border border-white/20 shadow-2xl shimmer">
             <Star size={16} className="text-yellow-400" />
             <span className="text-sm font-bold text-white/90">{t('home.cta.badge')}</span>
-            <Sparkles size={16} className="text-primary-400" />
           </div>
 
           <h2 className="text-5xl md:text-7xl font-black text-white mb-8">
             {t('home.cta.title')}{' '}
-            <span className="gradient-text-animate">{t('home.cta.titleAccent')}</span>?
+            <span className="gradient-text-animate">{t('home.cta.titleAccent')}</span>!
           </h2>
           <p className="text-xl md:text-2xl text-slate-300 mb-14 max-w-2xl mx-auto leading-relaxed">
             {t('home.cta.subtitle')}
           </p>
 
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => window.open('https://github.com/Start-Up-Week/cadlift', '_blank')}
             className="group relative px-12 py-6 bg-white text-slate-900 rounded-2xl font-bold text-xl shadow-2xl hover:shadow-white/30 hover:scale-105 transition-all duration-300 flex items-center gap-4 mx-auto overflow-hidden"
           >
-            {/* Shimmer effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
             <Play size={26} className="text-primary-600 relative z-10" />
             <span className="relative z-10">{t('home.cta.button')}</span>
             <ArrowRight size={26} className="group-hover:translate-x-2 transition-transform relative z-10" />
