@@ -115,14 +115,16 @@ const Header: React.FC = () => {
         {/* Navigation Desktop */}
         {!isAuthPage && (
           <nav className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="group relative px-6 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10">{t('navigation.dashboard_btn')}</span>
-              <ChevronRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-            </button>
+            {location.pathname !== '/dashboard' && (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="group relative px-6 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative z-10">{t('navigation.dashboard_btn')}</span>
+                <ChevronRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+              </button>
+            )}
 
             <div className="flex items-center bg-slate-100/50 dark:bg-slate-800/50 px-2 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50">
               {navItems.map((item) => (

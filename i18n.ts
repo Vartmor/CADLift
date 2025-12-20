@@ -343,8 +343,10 @@ const resources = {
         signOut: 'Sign Out'
       },
       profile: {
-        title: 'Your Profile',
+        title: 'Profile',
         memberSince: 'Member since',
+        appVersion: 'App Version',
+        localConversions: 'Local Conversions',
         openSource: 'Open Source',
         settings: {
           title: 'Settings',
@@ -352,7 +354,29 @@ const resources = {
           language: 'Language',
           account: 'Account',
           security: 'Security',
-          dangerZone: 'Danger Zone'
+          dangerZone: 'Danger Zone',
+          system: 'System Resources',
+          models: 'AI Models'
+        },
+        system: {
+          title: 'System Resources',
+          gpu: 'Detected GPU',
+          vram: 'VRAM Allocation',
+          vramLimit: 'Max VRAM Limit',
+          cpuFallback: 'CPU Fallback',
+          lowVram: 'Low VRAM Mode',
+          autoDetect: 'Auto-detect Hardware'
+        },
+        models: {
+          title: 'AI Model Management',
+          path: 'Models Storage Path',
+          autoUpdate: 'Auto-Update Models',
+          purge: 'Purge Cache',
+          verify: 'Verify Integrity',
+          status: 'Status',
+          ready: 'Ready',
+          missing: 'Missing',
+          downloading: 'Downloading...'
         },
         theme: {
           light: 'Light',

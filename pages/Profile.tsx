@@ -24,6 +24,9 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Cpu,
+  FileDigit,
+  Download,
 } from 'lucide-react';
 
 // Modal component
@@ -67,6 +70,14 @@ const Profile: React.FC = () => {
   const [showSessionsModal, setShowSessionsModal] = useState(false);
   const [showLoginHistory, setShowLoginHistory] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // System Control States
+  const [vramLimit, setVramLimit] = useState(8);
+  const [cpuFallback, setCpuFallback] = useState(false);
+  const [lowVramMode, setLowVramMode] = useState(false);
+  const [autoUpdateModels, setAutoUpdateModels] = useState(true);
+  const [modelPath, setModelPath] = useState('C:/Users/Muhammed/.cadlift/models');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Form states
   const [displayName, setDisplayName] = useState(user?.display_name || '');
@@ -188,18 +199,15 @@ const Profile: React.FC = () => {
                   <span className="text-sm font-medium">{user?.email || 'No email'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-purple-400" />
-                  <span className="text-sm font-medium">{t('profile.memberSince')} {memberSince}</span>
+                  <Shield size={16} className="text-emerald-400" />
+                  <span className="text-sm font-medium">{t('profile.appVersion')}: v1.0.0 (Beta)</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-4 mt-6">
                 <div className="px-4 py-2 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-                  <span className="text-2xl font-bold text-cyan-400">0</span>
-                  <span className="text-sm ml-2 text-slate-400">{i18n.language === 'tr' ? 'Proje' : 'Projects'}</span>
-                </div>
-                <div className="px-4 py-2 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-                  <span className="text-2xl font-bold text-purple-400">{t('profile.openSource')}</span>
+                  <span className="text-2xl font-bold text-cyan-400">12</span>
+                  <span className="text-sm ml-2 text-slate-400">{t('profile.localConversions')}</span>
                 </div>
               </div>
             </div>
@@ -218,47 +226,120 @@ const Profile: React.FC = () => {
       {/* Settings Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {/* Account Settings */}
+        {/* System Info Card */}
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
           <div className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20">
-                <User size={24} />
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20">
+                <Cpu size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('profile.settings.account')}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{i18n.language === 'tr' ? 'Profilinizi yönetin' : 'Manage your profile'}</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('profile.system.title')}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">RTX 4060 Laptop GPU • 8GB</p>
               </div>
             </div>
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setDisplayName(user?.display_name || '');
-                  setShowEditProfile(true);
-                }}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <User size={18} className="text-slate-500 dark:text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.actions.editProfile')}</span>
+
+            <div className="space-y-6">
+              {/* VRAM Slider */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.system.vramLimit')}</span>
+                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{vramLimit} GB</span>
                 </div>
-                <ChevronRight size={18} className="text-slate-400" />
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  setShowChangePassword(true);
-                }}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <Key size={18} className="text-slate-500 dark:text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.actions.changePassword')}</span>
+                <input
+                  type="range"
+                  min="2"
+                  max="24"
+                  step="1"
+                  value={vramLimit}
+                  onChange={(e) => setVramLimit(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div className="flex justify-between mt-1 text-xs text-slate-400">
+                  <span>2GB</span>
+                  <span>24GB</span>
                 </div>
-                <ChevronRight size={18} className="text-slate-400" />
-              </button>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.system.cpuFallback')}</span>
+                <button
+                  onClick={() => setCpuFallback(!cpuFallback)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${cpuFallback ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${cpuFallback ? 'translate-x-6' : ''}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.system.lowVram')}</span>
+                <button
+                  onClick={() => setLowVramMode(!lowVramMode)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${lowVramMode ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${lowVramMode ? 'translate-x-6' : ''}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Model Management */}
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20">
+                <Box size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('profile.models.title')}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Stable Diffusion v1.5 • TripoSR</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">{t('profile.models.path')}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={modelPath}
+                    onChange={(e) => setModelPath(e.target.value)}
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('profile.models.autoUpdate')}</span>
+                <button
+                  onClick={() => setAutoUpdateModels(!autoUpdateModels)}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${autoUpdateModels ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform ${autoUpdateModels ? 'translate-x-5' : ''}`} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setIsVerifying(true);
+                    setTimeout(() => setIsVerifying(false), 2000);
+                  }}
+                  className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  {isVerifying ? <Sparkles size={16} className="animate-spin" /> : <Shield size={16} />}
+                  {isVerifying ? 'Checking...' : t('profile.models.verify')}
+                </button>
+                <button
+                  onClick={() => alert('Cache cleared!')}
+                  className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                >
+                  <LogOut size={16} className="rotate-90" />
+                  {t('profile.models.purge')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -391,60 +472,65 @@ const Profile: React.FC = () => {
                   <History size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{i18n.language === 'tr' ? 'Son Aktiviteler' : 'Recent Activity'}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{i18n.language === 'tr' ? 'Son dönüşümleriniz' : 'Your latest conversions'}</p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{i18n.language === 'tr' ? 'Yerel Geçmiş' : 'Local History'}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{i18n.language === 'tr' ? 'Son yerel dönüşümler' : 'C:/Users/Muhammed/.cadlift/outputs/'}</p>
                 </div>
               </div>
               <button
-                onClick={() => navigate('/dashboard#activity')}
+                onClick={() => navigate('/dashboard')}
                 className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-semibold text-sm hover:underline"
               >
-                {i18n.language === 'tr' ? 'Tümünü Gör' : 'View All'}
-                <ChevronRight size={16} />
+                {t('profile.localConversions')} <ChevronRight size={16} />
               </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-20 h-20 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 ring-1 ring-slate-200 dark:ring-slate-700">
-                <Box size={36} className="text-slate-400" />
-              </div>
-              <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">{i18n.language === 'tr' ? 'Henüz dönüşüm yok' : 'No conversions yet'}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">
-                {i18n.language === 'tr'
-                  ? 'Panelden CAD dosyaları, görüntüler veya promptlar ile 3D modeller oluşturmaya başlayın.'
-                  : 'Start creating 3D models from CAD files, images, or prompts in the dashboard.'}
-              </p>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="mt-6 px-6 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-              >
-                <Sparkles size={18} />
-                {i18n.language === 'tr' ? 'İlk Modelinizi Oluşturun' : 'Create Your First Model'}
-              </button>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {/* Mock History Items */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="py-4 flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <FileDigit size={20} className="text-slate-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white text-sm">project_gear_v{i}.glb</p>
+                      <p className="text-xs text-slate-500">24MB • 2m ago</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-cyan-600">
+                      <Download size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
       {/* Danger Zone */}
-      <div className="rounded-3xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 p-6">
-        <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">{t('profile.settings.dangerZone')}</h3>
-        <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">
-          {i18n.language === 'tr' ? 'Geri alınamayan kalıcı işlemler.' : 'Permanent actions that cannot be undone.'}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="px-4 py-2 rounded-xl border-2 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-          >
-            {t('profile.actions.deleteData')}
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="px-4 py-2 rounded-xl border-2 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-          >
-            {t('profile.actions.deleteAccount')}
-          </button>
+      <div className="relative overflow-hidden rounded-3xl border border-red-200 dark:border-red-900/50 p-1">
+        <div className="absolute inset-0 bg-red-50 dark:bg-red-950/20 backdrop-blur-xl" />
+        <div className="relative p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl text-red-600 dark:text-red-400">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-red-700 dark:text-red-400">{t('profile.settings.dangerZone')}</h3>
+              <p className="text-sm text-red-600/70 dark:text-red-400/70">{i18n.language === 'tr' ? 'Bu işlemler geri alınamaz.' : 'These actions are permanent and cannot be undone.'}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 w-full md:w-auto">
+            <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+              {t('profile.actions.deleteData')}
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors">
+              {t('profile.actions.deleteAccount')}
+            </button>
+          </div>
         </div>
       </div>
 
