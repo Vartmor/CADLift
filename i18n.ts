@@ -30,7 +30,7 @@ const resources = {
         about: 'About',
         theme_dark: 'Dark Mode',
         theme_light: 'Light Mode',
-        footer_text: '(c) 2024 CADLift. All rights reserved.',
+        footer_text: '(c) 2026 CADLift. All rights reserved.',
         footer_made: 'Made with love by',
         footer_docs: 'Docs',
         footer_support: 'Support',
@@ -60,7 +60,8 @@ const resources = {
         dashboard: 'Dashboard',
         dashboard_btn: 'Go to Dashboard',
         docs: 'Documentation',
-        about: 'About'
+        about: 'About',
+        viewOnGithub: 'View on GitHub'
       },
       home: {
         hero: {
@@ -439,7 +440,7 @@ const resources = {
       },
       footer: {
         brand: {
-          description: 'Transform your 2D designs into stunning 3D models instantly. Powered by advanced geometry processing and AI.'
+          description: 'Open-source 3D generation platform. Create models from CAD files, images, or text prompts. 100% locally on your machine.'
         },
         sections: {
           product: 'Product',
@@ -527,7 +528,7 @@ const resources = {
         about: 'Hakkında',
         theme_dark: 'Karanlık Mod',
         theme_light: 'Aydınlık Mod',
-        footer_text: '(c) 2024 CADLift. Tüm hakları saklıdır.',
+        footer_text: '(c) 2026 CADLift. Tüm hakları saklıdır.',
         footer_made: 'Sevgiyle geliştirildi:',
         footer_docs: 'Dokümanlar',
         footer_support: 'Destek',
@@ -559,7 +560,8 @@ const resources = {
         projects: 'Projelerim',
         docs: 'Dokümantasyon',
         resources: 'Kaynaklar',
-        about: 'Hakkında'
+        about: 'Hakkında',
+        viewOnGithub: "GitHub'da Gör"
       },
       home: {
         hero: {
@@ -937,7 +939,7 @@ const resources = {
       },
       footer: {
         brand: {
-          description: '2D tasarımlarınızı anında çarpıcı 3D modellere dönüştürün. Gelişmiş geometri işleme ve yapay zeka ile güçlendirilmiştir.'
+          description: 'Açık kaynaklı 3D üretim platformu. CAD dosyalarından, görüntülerden veya metin komutlarından modeller oluşturun. Tamamen yerel olarak bilgisayarınızda.'
         },
         sections: {
           product: 'Ürün',
@@ -1025,7 +1027,7 @@ const resources = {
         about: 'Über uns',
         theme_dark: 'Dunkelmodus',
         theme_light: 'Hellmodus',
-        footer_text: '(c) 2024 CADLift. Alle Rechte vorbehalten.',
+        footer_text: '(c) 2026 CADLift. Alle Rechte vorbehalten.',
         footer_made: 'Mit Liebe entwickelt von',
         footer_docs: 'Dokumentation',
         footer_support: 'Support',
@@ -1057,7 +1059,8 @@ const resources = {
         projects: 'Meine Projekte',
         docs: 'Dokumentation',
         resources: 'Ressourcen',
-        about: 'Über uns'
+        about: 'Über uns',
+        viewOnGithub: 'Auf GitHub ansehen'
       },
       home: {
         hero: {
@@ -1437,7 +1440,7 @@ const resources = {
       },
       footer: {
         brand: {
-          description: 'Verwandeln Sie Ihre 2D-Designs sofort in beeindruckende 3D-Modelle.'
+          description: 'Open-Source-Plattform für 3D-Generierung. Erstellen Sie Modelle aus CAD-Dateien, Bildern oder Textbefehlen. 100% lokal auf Ihrem Rechner.'
         },
         sections: {
           product: 'Produkt',

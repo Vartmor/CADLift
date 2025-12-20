@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Github,
-  Twitter,
   Linkedin,
   ExternalLink,
   Sparkles,
@@ -26,14 +25,13 @@ const Footer: React.FC = () => {
 
   const companyLinks = [
     { labelKey: 'footer.links.about', href: '/about' },
-    { labelKey: 'footer.links.github', href: 'https://github.com/vartmor', external: true },
+    { labelKey: 'footer.links.github', href: 'https://github.com/Vartmor', external: true },
     { labelKey: 'footer.links.contact', href: 'mailto:hello@cadlift.io', external: true },
   ];
 
   const socialLinks = [
-    { icon: Github, href: 'https://github.com/vartmor', label: 'GitHub' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
+    { icon: Github, href: 'https://github.com/Vartmor', label: 'GitHub' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/in/muhammed-koseoglu/', label: 'LinkedIn' },
   ];
 
   const renderLink = (link: { labelKey: string; href: string; external?: boolean }) => {
@@ -136,7 +134,7 @@ const Footer: React.FC = () => {
           {/* Bottom section - Copyright */}
           <div className="pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500">
-              <span>© {currentYear} CADLift.</span>
+              <span>© 2026 CADLift.</span>
               <span className="hidden sm:inline">{t('footer.copyright')}</span>
             </div>
 
@@ -145,7 +143,7 @@ const Footer: React.FC = () => {
               <Heart size={14} className="text-red-500 fill-red-500" />
               <span>{t('footer.by')}</span>
               <a
-                href="https://github.com/vartmor"
+                href="https://github.com/Vartmor"
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold text-slate-700 dark:text-slate-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
