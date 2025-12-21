@@ -8,6 +8,9 @@ engine = create_async_engine(
     settings.database_url,
     echo=False,
     future=True,
+    # Disable prepared statement caching for pgbouncer/Supabase compatibility
+    # pgbouncer in transaction mode doesn't support prepared statements
+    connect_args={"statement_cache_size": 0} if "postgresql" in settings.database_url else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(
