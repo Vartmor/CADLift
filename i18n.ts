@@ -457,6 +457,7 @@ const resources = {
           faq: 'FAQ',
           community: 'Community',
           about: 'About',
+          docs: 'Docs',
           github: 'GitHub',
           contact: 'Contact'
         },
@@ -956,6 +957,7 @@ const resources = {
           faq: 'SSS',
           community: 'Topluluk',
           about: 'Hakkında',
+          docs: 'Dokümanlar',
           github: 'GitHub',
           contact: 'İletişim'
         },
@@ -1457,6 +1459,7 @@ const resources = {
           faq: 'FAQ',
           community: 'Community',
           about: 'Über uns',
+          docs: 'Dokumentation',
           github: 'GitHub',
           contact: 'Kontakt'
         },

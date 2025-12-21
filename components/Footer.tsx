@@ -10,6 +10,7 @@ import {
   Users,
   Heart
 } from 'lucide-react';
+import { env } from '../config/env';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
@@ -25,6 +26,7 @@ const Footer: React.FC = () => {
 
   const companyLinks = [
     { labelKey: 'footer.links.about', href: '/about' },
+    { labelKey: 'footer.links.docs', href: `${env.API_BASE_URL}/docs`, external: true },
     { labelKey: 'footer.links.github', href: 'https://github.com/Vartmor', external: true },
     { labelKey: 'footer.links.contact', href: 'mailto:hello@cadlift.io', external: true },
   ];

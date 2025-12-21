@@ -13,7 +13,8 @@ interface ImportMeta {
 }
 
 // Support both VITE_API_URL and VITE_API_BASE_URL for backwards compatibility
-const rawApiBase = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
+// Default to localhost:8000 for local development
+const rawApiBase = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 const rawLogging = import.meta.env.VITE_ENABLE_JOB_LOGS ?? 'true';
 const rawLocalFallback = import.meta.env.VITE_ENABLE_LOCAL_JOBS ?? 'true';
 

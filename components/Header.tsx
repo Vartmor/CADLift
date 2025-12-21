@@ -3,8 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Moon, Sun, Box, Languages, ChevronRight, User, ChevronDown, Check, Github } from 'lucide-react';
+import { Moon, Sun, Box, Languages, ChevronRight, User, ChevronDown, Check, Github, FileText } from 'lucide-react';
 import { triggerLanguageSwitch } from './Layout';
+import { env } from '../config/env';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -116,6 +117,17 @@ const Header: React.FC = () => {
                 {t('navigation.about')}
               </button>
             )}
+
+            {/* Docs button */}
+            <a
+              href={`${env.API_BASE_URL}/docs`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1.5"
+            >
+              <FileText size={14} />
+              {t('navigation.docs')}
+            </a>
           </nav>
         )}
 
