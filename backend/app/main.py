@@ -94,14 +94,22 @@ if static_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
 
-@app.get("/", tags=["frontend"])
+@app.get("/", tags=["info"])
 async def root():
-    """Serve the main frontend UI"""
+    """API landing page with links to docs"""
     from fastapi.responses import FileResponse
     index_path = static_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path, media_type="text/html")
-    return {"message": "CADLift API", "docs": "/docs"}
+    # Fallback to JSON if HTML not found
+    return {
+        "name": "CADLift API",
+        "version": "1.0.0",
+        "description": "Open-source 3D generation platform",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "health": "/health"
+    }
 
 
 @app.get("/health", tags=["health"])

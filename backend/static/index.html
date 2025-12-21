@@ -1,142 +1,237 @@
 <!DOCTYPE html>
-<html lang="en" class="antialiased">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CADLift - 2D to 3D Converter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-            },
-            colors: {
-              primary: {
-                50: '#ecfeff',
-                100: '#cffafe',
-                200: '#a5f3fc',
-                300: '#67e8f9',
-                400: '#22d3ee',
-                500: '#06b6d4',
-                600: '#0891b2',
-                700: '#0e7490',
-                800: '#155e75',
-                900: '#164e63',
-                950: '#083344',
-              },
-              slate: {
-                850: '#1e293b', 
-                900: '#0f172a',
-                950: '#020617',
-              }
-            },
-            animation: {
-              blob: "blob 7s infinite",
-              "fade-in": "fadeIn 0.5s ease-out forwards",
-              "fade-in-up": "fadeInUp 0.7s ease-out forwards",
-              "spin-slow": "spin 3s linear infinite",
-              "shimmer": "shimmer 2s infinite linear",
-            },
-            keyframes: {
-              blob: {
-                "0%": {
-                  transform: "translate(0px, 0px) scale(1)",
-                },
-                "33%": {
-                  transform: "translate(30px, -50px) scale(1.1)",
-                },
-                "66%": {
-                  transform: "translate(-20px, 20px) scale(0.9)",
-                },
-                "100%": {
-                  transform: "translate(0px, 0px) scale(1)",
-                },
-              },
-              fadeIn: {
-                "0%": { opacity: "0" },
-                "100%": { opacity: "1" },
-              },
-              fadeInUp: {
-                "0%": { opacity: "0", transform: "translateY(20px)" },
-                "100%": { opacity: "1", transform: "translateY(0)" },
-              },
-              shimmer: {
-                "0%": { transform: "translateX(-100%)" },
-                "100%": { transform: "translateX(100%)" },
-              }
-            },
-          }
-        }
-      }
-    </script>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CADLift API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-      
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      
-      .bg-grid-slate-200 {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%23e2e8f0'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
-      }
-      
-      .dark .bg-grid-slate-800 {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%231e293b' stroke-opacity='0.4'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
-      }
-      
-      .animation-delay-2000 {
-        animation-delay: 2s;
-      }
-      
-      .animation-delay-4000 {
-        animation-delay: 4s;
-      }
-      
-      /* Custom Scrollbar */
-      
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      
-      .dark ::-webkit-scrollbar-thumb {
-        background: #334155;
-      }
-      
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #e2e8f0;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .logo {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 40px -10px rgba(6, 182, 212, 0.5);
+        }
+        
+        .title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .version {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #06b6d4;
+            background: rgba(6, 182, 212, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .description {
+            color: #94a3b8;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .links {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: rgba(51, 65, 85, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 12px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .link:hover {
+            background: rgba(71, 85, 105, 0.5);
+            border-color: #06b6d4;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.3);
+        }
+        
+        .link-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        
+        .link-docs .link-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .link-redoc .link-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .link-health .link-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .link-github .link-icon { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+        
+        .json-section {
+            margin-top: 1.5rem;
+        }
+        
+        .json-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+        }
+        
+        .json-block {
+            background: #0f172a;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+        
+        .json-key { color: #7dd3fc; }
+        .json-string { color: #86efac; }
+        .json-bracket { color: #94a3b8; }
+        
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        
+        .footer a {
+            color: #06b6d4;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 500px) {
+            .links {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 1.5rem;
+            }
+        }
     </style>
-
-<!-- Local stylesheet link removed (not generated in build); Tailwind is loaded via CDN -->
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
-    "react-i18next": "https://aistudiocdn.com/react-i18next@^16.3.3",
-    "i18next": "https://aistudiocdn.com/i18next@^25.6.2"
-  }
-}
-</script>
-  <script type="module" crossorigin src="/assets/index-ChTBZ9pf.js"></script>
 </head>
-  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden">
-    <div id="root"></div>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="logo">📦</div>
+                <div>
+                    <div class="title">CADLift API</div>
+                    <div class="version">v1.0.0</div>
+                </div>
+            </div>
+            
+            <p class="description">
+                Open-source 3D generation platform. Create models from CAD files, images, or text prompts. 100% locally on your machine.
+            </p>
+            
+            <div class="links">
+                <a href="/docs" class="link link-docs">
+                    <div class="link-icon">📖</div>
+                    <span>Swagger Docs</span>
+                </a>
+                <a href="/redoc" class="link link-redoc">
+                    <div class="link-icon">📚</div>
+                    <span>ReDoc</span>
+                </a>
+                <a href="/health" class="link link-health">
+                    <div class="link-icon">💚</div>
+                    <span>Health Check</span>
+                </a>
+                <a href="https://github.com/Vartmor/CADLift" target="_blank" class="link link-github">
+                    <div class="link-icon">🐙</div>
+                    <span>GitHub</span>
+                </a>
+            </div>
+            
+            <div class="json-section">
+                <div class="json-label">API Response</div>
+                <pre class="json-block"><span class="json-bracket">{</span>
+  <span class="json-key">"name"</span>: <span class="json-string">"CADLift API"</span>,
+  <span class="json-key">"version"</span>: <span class="json-string">"1.0.0"</span>,
+  <span class="json-key">"description"</span>: <span class="json-string">"Open-source 3D generation platform"</span>,
+  <span class="json-key">"docs"</span>: <span class="json-string">"/docs"</span>,
+  <span class="json-key">"redoc"</span>: <span class="json-string">"/redoc"</span>,
+  <span class="json-key">"health"</span>: <span class="json-string">"/health"</span>
+<span class="json-bracket">}</span></pre>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Made with ❤️ by <a href="https://github.com/Vartmor" target="_blank">Vartmor</a>
+        </div>
+    </div>
 </body>
 </html>
